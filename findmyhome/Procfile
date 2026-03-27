@@ -1,0 +1,9 @@
+# Railway reads this to run multiple processes.
+# The web process serves the API.
+# The worker process runs background jobs (KYC AI analysis, duplicate detection, notifications).
+# The scheduler runs daily tasks (commission enforcement reminders).
+# Add each as a separate Railway service pointing to the same repo.
+
+web: php artisan serve --host=0.0.0.0 --port=$PORT
+worker: php artisan queue:work --queue=kyc,default --sleep=3 --tries=2 --max-time=3600 --memory=256
+scheduler: php artisan schedule:work

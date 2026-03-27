@@ -1,0 +1,60 @@
+{
+  "expo": {
+    "name": "Find My Home",
+    "slug": "findmyhome",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1c1c1a"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "ug.findmyhome.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to upload property photos and KYC documents.",
+        "NSPhotoLibraryUsageDescription": "Used to select property photos and KYC documents."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1c1c1a"
+      },
+      "package": "ug.findmyhome.app",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ],
+      "googleServicesFile": "./google-services.json"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#b8965a",
+          "sounds": []
+        }
+      ],
+      [
+        "expo-image-picker",
+        { "photosPermission": "Allow Find My Home to access your photos." }
+      ]
+    ],
+    "scheme": "findmyhome",
+    "experiments": { "typedRoutes": true }
+  }
+}
