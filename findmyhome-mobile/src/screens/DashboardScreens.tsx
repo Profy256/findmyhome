@@ -76,7 +76,7 @@ export function LeadsScreen() {
                 <Text style={{ fontSize: 12, color: C.stone }} numberOfLines={1}>🏠 {lead.property?.title}</Text>
                 <Text style={{ fontSize: 11, color: C.dust, marginTop: 4 }}>{timeAgo(lead.created_at)}</Text>
                 {lead.contact_method === 'whatsapp' && (
-                  <TouchableOpacity onPress={() => Linking.openURL(`https://wa.me/${lead.buyer?.phone?.replace(/\D/g,'')}`)}>
+                  <TouchableOpacity onPress={() => Linking.openURL(`https://wa.me/${lead.buyer?.phone?.replace(/\D/g,'')}`)}
                     style={{ marginTop: 10, backgroundColor: C.wa, borderRadius: 8, paddingVertical: 9, alignItems: 'center' }}>
                     <Text style={{ color: C.white, fontWeight: '700', fontSize: 13 }}>Open WhatsApp →</Text>
                   </TouchableOpacity>

@@ -44,6 +44,10 @@ export function buildWhatsAppUrl(phone: string, message: string): string {
   return `https://wa.me/${ugPhone}?text=${encodeURIComponent(message)}`
 }
 
+export function buildWhatsAppMessage(propertyTitle: string, buyerName: string): string {
+  return `Hi, my name is ${buyerName}. I am interested in your listing on Find My Home: "${propertyTitle}". Could you please provide more details?`
+}
+
 export const AREAS = [
   'Kampala', 'Wakiso', 'Entebbe', 'Mukono', 'Ntinda', 'Kira',
   'Muyenga', 'Kololo', 'Bukoto', 'Nansana', 'Kireka', 'Najjera',

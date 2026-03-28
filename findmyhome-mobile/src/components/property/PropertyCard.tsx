@@ -31,7 +31,7 @@ export function PropertyCard({ property, onPress }: { property: Property; onPres
       {/* Image */}
       <View style={{ height: 180, backgroundColor: '#1a2a3a', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
         {property.photos?.[0] ? (
-          <Image source={{ uri: property.photos[0] }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} contentFit="cover" />
+          <Image source={{ uri: property.photos[0] }} style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: '100%', height: '100%' }} contentFit="cover" />
         ) : (
           <Text style={{ fontSize: 52 }}>{emoji}</Text>
         )}
@@ -72,9 +72,9 @@ export function PropertyCard({ property, onPress }: { property: Property; onPres
         {/* Specs */}
         {(property.bedrooms || property.bathrooms || property.size) && (
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.sand }}>
-            {property.bedrooms  && <Text style={{ fontSize: 11, color: C.stone }}>🛏 {property.bedrooms} bed</Text>}
+            {property.bedrooms && <Text style={{ fontSize: 11, color: C.stone }}>🛏 {property.bedrooms} bed</Text>}
             {property.bathrooms && <Text style={{ fontSize: 11, color: C.stone }}>🚿 {property.bathrooms} bath</Text>}
-            {property.size      && <Text style={{ fontSize: 11, color: C.stone }}>📐 {property.size}</Text>}
+            {property.size && <Text style={{ fontSize: 11, color: C.stone }}>📐 {property.size}</Text>}
           </View>
         )}
       </View>

@@ -118,11 +118,18 @@ export default function DashboardPage() {
               </Link>
             )}
             {isSeller && kycStatus !== 'verified' && (
-              <Link href="/dashboard/kyc"
-                className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors">
-                <CheckCircle2 className="w-4 h-4 text-amber-600" />
-                <span className="text-sm text-amber-700 font-medium">Complete Verification</span>
-              </Link>
+              kycStatus === 'pending' ? (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50/50 border border-amber-200/50 opacity-70">
+                  <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm text-amber-700 font-medium">AI is verifying document...</span>
+                </div>
+              ) : (
+                <Link href="/dashboard/kyc"
+                  className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors">
+                  <CheckCircle2 className="w-4 h-4 text-amber-600" />
+                  <span className="text-sm text-amber-700 font-medium">Complete Verification</span>
+                </Link>
+              )
             )}
           </div>
         </div>

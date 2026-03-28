@@ -160,6 +160,28 @@ Web app is now running at: **http://localhost:3000**
 
 ---
 
+## Part 2B — Admin Panel (Next.js Web)
+
+### Step 1 — Install dependencies
+```bash
+cd findmyhome-admin
+npm install
+```
+
+### Step 2 — Environment file
+Ensure `.env.local` exists with:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+```
+
+### Step 3 — Start the development server
+```bash
+npm run dev
+```
+Admin app is now running at: **http://localhost:3001**
+
+---
+
 ## Part 3 — Mobile App (React Native / Expo)
 
 ### Step 1 — Install Expo CLI
@@ -224,17 +246,19 @@ npx expo start --ios
 
 ## Running Everything Together
 
-Open **4 terminal windows**:
+Open **5 terminal windows**:
 
 | Terminal | Directory | Command |
 |----------|-----------|---------|
 | 1 | `findmyhome/` | `php artisan serve` |
 | 2 | `findmyhome/` | `php artisan queue:work --queue=kyc,default` |
 | 3 | `findmyhome-web/` | `npm run dev` |
-| 4 | `findmyhome-mobile/` | `npx expo start` |
+| 4 | `findmyhome-admin/` | `npm run dev` |
+| 5 | `findmyhome-mobile/` | `npx expo start` |
 
 Then open:
 - **Web:** http://localhost:3000
+- **Admin:** http://localhost:3001
 - **API:** http://localhost:8000
 - **Mobile:** Scan QR code in Expo Go
 
@@ -255,7 +279,7 @@ Then open:
 3. Go to Dashboard → KYC
 4. Upload any clear photo of any document (Google Vision is optional locally)
 5. If `GOOGLE_VISION_API_KEY` is not set, document goes to "Pending" automatically
-6. Log in as admin → http://localhost:3000/admin
+6. Log in as admin → http://localhost:3001
    - Email: admin@findmyhome.ug / Password: Admin@2024!
 7. Go to Admin → KYC → Approve the document manually
 
@@ -269,7 +293,7 @@ Then open:
 
 ### Test 4 — Admin panel
 1. Log in as admin@findmyhome.ug
-2. Visit http://localhost:3000/admin
+2. Visit http://localhost:3001
 3. Try: blocking a user, freezing a listing, changing commission rate in Settings
 
 ### Test 5 — Commission enforcement
@@ -376,7 +400,7 @@ App\Models\Setting::commissionBlockThreshold()
 | Service | URL |
 |---------|-----|
 | Web App | http://localhost:3000 |
-| Admin Panel | http://localhost:3000/admin |
+| Admin Panel | http://localhost:3001 |
 | API Health | http://localhost:8000/api/health |
 | API v1 Base | http://localhost:8000/api/v1 |
 | Mobile (Expo) | QR code in terminal |

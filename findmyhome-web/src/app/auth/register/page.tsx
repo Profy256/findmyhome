@@ -1,13 +1,14 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { authApi } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
-import { Eye, EyeOff, CheckCircle, AlertCircle, Info } from 'lucide-react'
+import { Eye, EyeOff, CheckCircle, AlertCircle, Info, Upload } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import axios from 'axios'
 
 const CATEGORIES = [
   { key: 'land',       label: 'Land',                  desc: 'Sell land plots',              strictness: 'Strict',   color: 'red',   image: '/categories/land.svg' },
@@ -25,9 +26,15 @@ export default function RegisterPage() {
   const [showPw, setShowPw]         = useState(false)
   const [role, setRole]             = useState('buyer')
   const [categories, setCategories] = useState<string[]>([])
+  const [file, setFile]             = useState<File | null>(null)
+  const [uploading, setUploading]   = useState(false)
+  const fileRef                     = useRef<HTMLInputElement>(null)
   const { setAuth } = useAuthStore()
   const router     = useRouter()
   const params     = useSearchParams()
+
+  const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+  const PRESET= process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
 
   useEffect(() => {
     const r = params.get('role')
@@ -46,19 +53,44 @@ export default function RegisterPage() {
       toast.error('Please select at least one property category.')
       return
     }
+    if (isSeller && !file) {
+      toast.error(role === 'company' ? 'Please upload your Business Registration Document.' : 'Please upload your National ID.')
+      return
+    }
+
+    setUploading(true)
     try {
-      const payload = { ...data, role, seller_categories: isSeller ? categories : undefined }
+      let file_url = undefined
+      let cloudinary_public_id = undefined
+
+      if (isSeller && file) {
+        const maxMB = 10
+        if (file.size > maxMB * 1024 * 1024) { throw new Error(`File must be under ${maxMB}MB.`) }
+
+        const form = new FormData()
+        form.append('file', file)
+        form.append('upload_preset', PRESET ?? 'findmyhome_kyc')
+        form.append('folder', 'kyc')
+
+        const cldRes = await axios.post(`https://api.cloudinary.com/v1_1/${CLOUD}/raw/upload`, form)
+        file_url = cldRes.data.secure_url
+        cloudinary_public_id = cldRes.data.public_id
+      }
+
+      const payload = { ...data, role, seller_categories: isSeller ? categories : undefined, file_url, cloudinary_public_id }
       const res = await authApi.register(payload)
       setAuth(res.data.user, res.data.token)
       toast.success('Account created! Welcome to Find My Home.')
-      router.push(isSeller ? '/dashboard/kyc' : '/search')
+      router.push('/dashboard')
     } catch (err: any) {
       const errs = err.response?.data?.errors
       if (errs) {
         Object.values(errs).flat().forEach((e: any) => toast.error(e))
       } else {
-        toast.error(err.response?.data?.message ?? 'Registration failed.')
+        toast.error(err.response?.data?.message ?? err.message ?? 'Registration failed.')
       }
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -136,6 +168,33 @@ export default function RegisterPage() {
             {errors.password && <p className="text-red-500 text-xs mt-1">{String(errors.password.message)}</p>}
           </div>
 
+          {/* Document Upload -- sellers only */}
+          {isSeller && (
+            <div className="pt-2 pb-2">
+              <div className="text-xs font-bold uppercase tracking-[1.5px] text-ink mb-1">
+                {role === 'company' ? 'Business Document' : 'National ID'} <span className="text-red-400">*</span>
+              </div>
+              <p className="text-xs text-stone mb-3">
+                {role === 'company' 
+                  ? 'Upload your Business Registration Certificate from URSB for instant verification.' 
+                  : 'Upload a clear photo of your National ID or Passport for instant verification.'}
+              </p>
+              
+              <input ref={fileRef} type="file" accept="image/*,.pdf" className="hidden" 
+                     onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                     
+              <button type="button" onClick={() => fileRef.current?.click()}
+                className={cn('w-full border-2 border-dashed rounded-xl py-6 flex flex-col items-center gap-2 transition-all',
+                   file ? 'border-green-400 bg-green-50' : 'border-sand hover:border-ink cursor-pointer')}>
+                <Upload className={cn("w-6 h-6", file ? 'text-green-600' : 'text-dust')} />
+                <span className={cn("text-xs font-medium", file ? 'text-green-700' : 'text-stone')}>
+                  {file ? file.name : 'Click to select file'}
+                </span>
+                <span className="text-[10px] text-dust">JPG, PNG, or PDF — max 10MB</span>
+              </button>
+            </div>
+          )}
+
           {/* Category selector — sellers only */}
           {isSeller && (
             <div className="pt-2">
@@ -197,8 +256,8 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3.5 mt-2">
-            {isSubmitting ? 'Creating account...' : 'Create Account'}
+          <button type="submit" disabled={isSubmitting || uploading} className="btn-primary w-full py-3.5 mt-2">
+            {isSubmitting || uploading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 

@@ -1,0 +1,22 @@
+# Ignore all .env files by default globally
+.env
+.env.*
+.env.local
+.env.*.local
+
+# But DO track environment template examples
+!.env.example
+!.env.local.example
+!*/.env.example
+!*/.env.local.example
+
+# Common global ignores
+node_modules/
+vendor/
+.DS_Store
+*.pem
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.idea/
+.vscode/

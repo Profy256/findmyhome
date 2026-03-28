@@ -24,16 +24,12 @@ class CompanyVerificationService
             ->toArray();
 
         $hasCertificate = in_array('business_registration', $verified);
-        $hasDirectorId  = collect($verified)->intersect([
-            'national_id', 'passport', 'drivers_licence'
-        ])->isNotEmpty();
 
-        // Both documents must be verified
-        if (!$hasCertificate || !$hasDirectorId) {
-            Log::info("Company KYC incomplete — waiting for both documents", [
+        // Only business registration document is required
+        if (!$hasCertificate) {
+            Log::info("Company KYC incomplete — waiting for business document", [
                 'company_id'     => $company->id,
                 'has_cert'       => $hasCertificate,
-                'has_director_id'=> $hasDirectorId,
                 'verified_docs'  => $verified,
             ]);
             return;

@@ -1,0 +1,117 @@
+services:
+  # Database
+  db:
+    image: postgres:15-alpine
+    container_name: findmyhome-db
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-findmyhome}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: findmyhome-redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  # Backend API
+  api:
+    build:
+      context: ./findmyhome
+      dockerfile: Dockerfile
+    container_name: findmyhome-api
+    restart: always
+    depends_on:
+      - db
+      - redis
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      DB_HOST: db
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+      CACHE_DRIVER: redis
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./findmyhome:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/node_modules
+
+  # Web Frontend
+  web:
+    build:
+      context: ./findmyhome-web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    container_name: findmyhome-web
+    restart: always
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+
+  # Admin Panel
+  admin:
+    build:
+      context: ./findmyhome-admin
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    container_name: findmyhome-admin
+    restart: always
+    depends_on:
+      - api
+    ports:
+      - "3001:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+
+  # Worker
+  worker:
+    build:
+      context: ./findmyhome
+      dockerfile: Dockerfile
+    container_name: findmyhome-worker
+    restart: always
+    depends_on:
+      - api
+      - db
+      - redis
+    entrypoint: [ "php", "artisan", "queue:work", "--queue=kyc,default" ]
+    environment:
+      DB_HOST: db
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+
+  # Scheduler
+  scheduler:
+    build:
+      context: ./findmyhome
+      dockerfile: Dockerfile
+    container_name: findmyhome-scheduler
+    restart: always
+    depends_on:
+      - api
+      - db
+      - redis
+    entrypoint: [ "sh", "-c", "while [ true ]; do php artisan schedule:run; sleep 60; done" ]
+    environment:
+      DB_HOST: db
+      REDIS_HOST: redis
+
+volumes:
+  pgdata:

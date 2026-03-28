@@ -35,6 +35,12 @@ git init && git add . && git commit -m "Find My Home web v1.0"
 git remote add origin https://github.com/YOUR_USERNAME/findmyhome-web.git
 git push -u origin main
 
+# Admin Panel
+cd findmyhome-admin
+git init && git add . && git commit -m "Find My Home admin v1.0"
+git remote add origin https://github.com/YOUR_USERNAME/findmyhome-admin.git
+git push -u origin main
+
 # Mobile
 cd findmyhome-mobile
 git init && git add . && git commit -m "Find My Home mobile v1.0"
@@ -102,14 +108,22 @@ php artisan db:seed --force
 
 ---
 
-## Step 2 — Deploy Frontend on Vercel
+## Step 2 — Deploy Frontends on Vercel
 
+### 2.1 Deploy Web Frontend
 1. Go to https://vercel.com → Import → `findmyhome-web`
 2. Add environment variables:
 ```env
 NEXT_PUBLIC_API_URL=https://YOUR-API.railway.app/api/v1
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
 NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=findmyhome_photos
+```
+
+### 2.2 Deploy Admin Panel
+1. Go to https://vercel.com → Import → `findmyhome-admin`
+2. Add environment variables:
+```env
+NEXT_PUBLIC_API_URL=https://YOUR-API.railway.app/api/v1
 ```
 
 ---
@@ -218,8 +232,9 @@ All endpoints: `https://YOUR-API.railway.app/api/v1/`
 
 ## Architecture
 ```
-Vercel (Next.js)     ──────► Railway API (Laravel) ──────► PostgreSQL
-Expo (React Native)  ──────►        │
+Vercel (Next.js Web)   ──────► Railway API (Laravel) ──────► PostgreSQL
+Vercel (Next.js Admin) ──────►        │
+Expo (React Native)    ──────►        │
                                     ├──► Railway Worker (Queue jobs)
                                     ├──► Railway Scheduler (Daily tasks)
                                     ├──► Cloudinary (Photos + KYC docs)

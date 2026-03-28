@@ -102,7 +102,7 @@ class KycController extends Controller
                           'You will be notified once verification is complete.',
             'document' => $document,
             'what_happens_next' => $user->role === 'company'
-                ? 'For company accounts, both your Business Registration Certificate and Director ID must be verified.'
+                ? 'Your business document will be automatically reviewed. Activation takes just a few minutes.'
                 : 'Your document will be automatically reviewed. Most verifications complete within a few minutes.',
         ], 201);
     }
@@ -131,9 +131,8 @@ class KycController extends Controller
             return [
                 'required' => [
                     'business_registration' => 'Certificate of Incorporation from Uganda Registration Services Bureau (URSB)',
-                    'director_id'           => 'National ID, Passport, or Driver\'s Licence of the company director',
                 ],
-                'note' => 'Both documents must be verified before your company account is activated.',
+                'note' => 'Your business document must be verified before your company account is activated.',
                 'benefits' => [
                     'Free Blue Badge for 30 days',
                     'Online booking pre-approved',

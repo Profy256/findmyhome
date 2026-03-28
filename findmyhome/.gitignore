@@ -3,9 +3,10 @@
 /public/storage
 /storage/*.key
 /vendor
+# Environment files
 .env
-.env.backup
-.env.production
+.env.*
+!.env.example
 .phpunit.result.cache
 database/*.sqlite
 npm-debug.log

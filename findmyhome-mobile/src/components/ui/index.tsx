@@ -178,7 +178,7 @@ export function KycBanner({ status, onPress }: { status: string; onPress?: () =>
   if (status === 'verified') return null
   const configs: Record<string, { bg: string; tc: string; msg: string; btn?: string }> = {
     none:     { bg: '#fffbeb', tc: '#b7791f', msg: 'Upload your ID to start listing properties.', btn: 'Verify Now' },
-    pending:  { bg: '#ebf8ff', tc: '#2b6cb0', msg: 'Your KYC is being reviewed. We\'ll notify you shortly.' },
+    pending:  { bg: '#ebf8ff', tc: '#2b6cb0', msg: 'AI is currently analyzing your document. Verification usually takes a few minutes.' },
     rejected: { bg: '#fff5f5', tc: '#c53030', msg: 'Your KYC was rejected. Please resubmit.', btn: 'Resubmit' },
     blocked:  { bg: '#fff5f5', tc: '#c53030', msg: 'Your account is suspended. Pay outstanding commissions to restore.' },
   }

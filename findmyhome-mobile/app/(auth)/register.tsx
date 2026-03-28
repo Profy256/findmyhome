@@ -6,6 +6,9 @@ import { useAuthStore } from '@/lib/store'
 import { Btn, Input } from '@/components/ui'
 import { C, SELLER_CATEGORIES } from '@/lib/utils'
 import Toast from 'react-native-toast-message'
+import * as ImagePicker from 'expo-image-picker'
+import { Ionicons } from '@expo/vector-icons'
+import axios from 'axios'
 
 const ROLES = [
   { value: 'buyer',   label: 'Buyer',   desc: 'Looking for property',  emoji: '🔍' },
@@ -23,14 +26,27 @@ export default function RegisterScreen() {
   const [phone,       setPhone]       = useState('')
   const [password,    setPassword]    = useState('')
   const [categories,  setCategories]  = useState<string[]>([])
+  const [document,    setDocument]    = useState<ImagePicker.ImagePickerAsset | null>(null)
   const [loading,     setLoading]     = useState(false)
   const { setAuth } = useAuthStore()
   const isSeller = role === 'seller' || role === 'company'
+
+  const CLOUD = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME
+  const PRESET= process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET
 
   const strictest = categories.length > 0 ? Math.max(...categories.map(c => THRESHOLD[c] ?? 80)) : null
 
   const toggle = (key: string) =>
     setCategories(prev => prev.includes(key) ? prev.filter(c => c !== key) : [...prev, key])
+
+  const pickDocument = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    })
+    if (!result.canceled) setDocument(result.assets[0])
+  }
 
   const handleRegister = async () => {
     if (!name || !email || !phone || !password) {
@@ -42,13 +58,42 @@ export default function RegisterScreen() {
     if (role === 'company' && !company) {
       Toast.show({ type: 'error', text1: 'Enter your company name.' }); return
     }
+    if (isSeller && !document) {
+      Toast.show({ type: 'error', text1: role === 'company' ? 'Please upload your Business Registration Document.' : 'Please upload your National ID.' }); return
+    }
+
     setLoading(true)
     try {
-      const payload = { name, email, phone, password, role, company_name: company || undefined, seller_categories: isSeller ? categories : undefined }
+      let file_url = undefined
+      let cloudinary_public_id = undefined
+
+      if (isSeller && document) {
+        const formData = new FormData() as any
+        formData.append('file', {
+          uri: document.uri,
+          type: 'image/jpeg',
+          name: 'upload.jpg',
+        })
+        formData.append('upload_preset', PRESET ?? 'findmyhome_kyc')
+        formData.append('folder', 'kyc')
+
+        const resCld = await axios.post(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        file_url = resCld.data.secure_url
+        cloudinary_public_id = resCld.data.public_id
+      }
+
+      const payload = { 
+        name, email, phone, password, role, 
+        company_name: company || undefined, 
+        seller_categories: isSeller ? categories : undefined,
+        file_url, cloudinary_public_id
+      }
       const res = await authApi.register(payload)
       await setAuth(res.data.user, res.data.token)
-      Toast.show({ type: 'success', text1: 'Account created!', text2: isSeller ? 'Upload your ID to get verified.' : 'Start browsing properties.' })
-      router.replace(isSeller ? '/dashboard/kyc' : '/(tabs)')
+      Toast.show({ type: 'success', text1: 'Account created!', text2: isSeller ? 'Your verification is being processed.' : 'Start browsing properties.' })
+      router.replace('/(tabs)')
     } catch (err: any) {
       const errs = err.response?.data?.errors
       if (errs) { Toast.show({ type: 'error', text1: Object.values(errs).flat()[0] as string }) }
@@ -132,6 +177,36 @@ export default function RegisterScreen() {
                 </Text>
               </View>
             )}
+          </View>
+        )}
+
+        {/* Document Upload */}
+        {isSeller && (
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5, color: C.ink, marginBottom: 6 }}>
+              {role === 'company' ? 'Business Document' : 'National ID'} <Text style={{ color: C.red }}>*</Text>
+            </Text>
+            <Text style={{ fontSize: 12, color: C.stone, marginBottom: 14, lineHeight: 18 }}>
+              {role === 'company' ? 'Upload your Business Registration Certificate for instant verification.' : 'Upload a clear photo of your National ID or Passport for instant verification.'}
+            </Text>
+
+            <TouchableOpacity
+              onPress={pickDocument}
+              style={{
+                borderWidth: 2,
+                borderStyle: 'dashed',
+                borderColor: document ? '#48bb78' : C.sand,
+                backgroundColor: document ? '#f0fff4' : C.paper,
+                borderRadius: 14,
+                padding: 24,
+                alignItems: 'center',
+              }}
+            >
+              <Text style={{ fontSize: 24, marginBottom: 8 }}>{document ? '✅' : '📷'}</Text>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: document ? '#276749' : C.ink }}>
+                {document ? 'Document Selected' : 'Tap to select document'}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
 

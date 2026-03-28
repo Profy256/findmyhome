@@ -26,6 +26,10 @@ class AuthController extends Controller
             // Seller categories — required for sellers and companies, multi-select
             'seller_categories'  => 'required_if:role,seller|required_if:role,company|nullable|array',
             'seller_categories.*'=> 'in:land,apartment,house_rent,short_stay,lodge',
+
+            // Document upload for sellers/companies
+            'file_url'           => 'required_if:role,seller,company|url|nullable',
+            'cloudinary_public_id'=> 'required_if:role,seller,company|string|nullable',
         ]);
 
         // Validate at least one category if seller or company
@@ -46,6 +50,22 @@ class AuthController extends Controller
             'registration_number' => $data['registration_number'] ?? null,
             'seller_categories'   => $data['seller_categories'] ?? null,
         ]);
+
+        if (in_array($data['role'], ['seller', 'company']) && !empty($data['file_url'])) {
+            $user->update(['kyc_status' => 'pending']);
+
+            $docType = $data['role'] === 'company' ? 'business_registration' : 'national_id';
+
+            $document = \App\Models\KycDocument::create([
+                'user_id'              => $user->id,
+                'document_type'        => $docType,
+                'file_url'             => $data['file_url'],
+                'cloudinary_public_id' => $data['cloudinary_public_id'],
+                'status'               => 'pending',
+            ]);
+
+            \App\Jobs\AnalyseKycDocument::dispatch($document)->onQueue('kyc');
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
