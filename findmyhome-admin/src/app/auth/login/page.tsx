@@ -3,7 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
-import { authApi } from '@/lib/api'
+import { API_URL, authApi, isNetworkError } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff, Home } from 'lucide-react'
@@ -22,7 +22,17 @@ export default function LoginPage() {
       const role = res.data.user.role
       router.push(role === 'admin' ? '/admin' : role === 'buyer' ? '/search' : '/dashboard')
     } catch (err: any) {
-      toast.error(err.response?.data?.errors?.email?.[0] ?? err.response?.data?.message ?? 'Login failed.')
+      if (isNetworkError(err)) {
+        toast.error(`Cannot reach API (${API_URL}). Make sure the backend is running and CORS allows this origin.`)
+        return
+      }
+      const errorData = err.response?.data;
+      if (errorData?.errors) {
+        const firstErrorKey = Object.keys(errorData.errors)[0];
+        toast.error(errorData.errors[firstErrorKey][0]);
+      } else {
+        toast.error(errorData?.message || err.message || 'Login failed.');
+      }
     }
   }
 
@@ -67,6 +77,7 @@ export default function LoginPage() {
           <p className="text-sm text-stone text-center mt-6">
             Don&apos;t have an account?{' '}<Link href="/auth/register" className="text-ink font-medium hover:underline">Create one</Link>
           </p>
+
         </div>
       </div>
     </div>

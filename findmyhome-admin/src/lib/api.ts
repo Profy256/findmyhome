@@ -1,12 +1,23 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
   baseURL: API_URL.endsWith('/v1') ? API_URL : API_URL + '/v1',
   headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
 })
+
+export function isNetworkError(err: any): boolean {
+  // Only classify Axios errors as "network errors".
+  // Otherwise, runtime errors (e.g. in setAuth/router.push) would be misclassified.
+  if (!axios.isAxiosError(err)) return false
+
+  // Axios sets `response` only when the server responded (even with 4xx/5xx).
+  // When the API is unreachable (CORS, DNS, refused connection, mixed content),
+  // `response` is undefined and the error is typically ERR_NETWORK.
+  return !err.response && (err.code === 'ERR_NETWORK' || err.message === 'Network Error')
+}
 
 // Attach token from localStorage on every request
 api.interceptors.request.use((config) => {

@@ -13,6 +13,13 @@
 # Common global ignores
 node_modules/
 vendor/
+.next/
+**/.next/
+.turbo/
+**/.turbo/
+dist/
+build/
+.vercel/
 .DS_Store
 *.pem
 npm-debug.log*
@@ -20,3 +27,9 @@ yarn-debug.log*
 yarn-error.log*
 .idea/
 .vscode/
+
+# Build logs and output texts
+*.log
+*_log*.txt
+*_out.txt
+*_error.txt
