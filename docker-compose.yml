@@ -31,9 +31,12 @@ services:
     depends_on:
       - db
       - redis
+    env_file:
+      - ./findmyhome/.env
     environment:
-      APP_ENV: local
-      APP_DEBUG: "true"
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
       REDIS_HOST: redis
@@ -41,10 +44,6 @@ services:
       CACHE_DRIVER: redis
     ports:
       - "8000:8000"
-    volumes:
-      - ./findmyhome:/var/www/html
-      - /var/www/html/vendor
-      - /var/www/html/node_modules
 
   # Web Frontend
   web:
@@ -60,7 +59,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
 
   # Admin Panel
@@ -80,7 +79,7 @@ services:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
 
-  # Worker
+  # Worker — processes KYC analysis, notification, and other queued jobs
   worker:
     build:
       context: ./findmyhome
@@ -91,13 +90,15 @@ services:
       - api
       - db
       - redis
-    entrypoint: [ "php", "artisan", "queue:work", "--queue=kyc,default" ]
+    entrypoint: [ "php", "artisan", "queue:work", "--queue=kyc,default", "--sleep=3", "--tries=3", "--timeout=90" ]
+    env_file:
+      - ./findmyhome/.env
     environment:
       DB_HOST: db
       REDIS_HOST: redis
       QUEUE_CONNECTION: redis
 
-  # Scheduler
+  # Scheduler — runs artisan schedule:run every minute
   scheduler:
     build:
       context: ./findmyhome
@@ -109,6 +110,8 @@ services:
       - db
       - redis
     entrypoint: [ "sh", "-c", "while [ true ]; do php artisan schedule:run; sleep 60; done" ]
+    env_file:
+      - ./findmyhome/.env
     environment:
       DB_HOST: db
       REDIS_HOST: redis

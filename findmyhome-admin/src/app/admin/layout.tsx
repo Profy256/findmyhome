@@ -20,11 +20,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, isAuthenticated, clearAuth } = useAuthStore()
   const pathname = usePathname()
   const router   = useRouter()
+  const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
-    if (!isAuthenticated() || user?.role !== 'admin') router.replace('/auth/login')
+    setHydrated(true)
   }, [])
 
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!isAuthenticated() || user?.role !== 'admin') router.replace('/auth/login')
+  }, [user, hydrated, router, isAuthenticated])
+
+  if (!hydrated) return null; // wait for client-side localStorage hydration
   if (!user || user.role !== 'admin') return null
 
   return (

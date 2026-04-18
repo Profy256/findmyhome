@@ -114,6 +114,7 @@ export const adminApi = {
   hideRating:       (id: string)                    => api.post(`/admin/ratings/${id}/hide`),
   deleteRating:     (id: string)                    => api.delete(`/admin/ratings/${id}`),
   listLeads:        (params?: any)                  => api.get('/admin/leads', { params }),
+  listBookings:     (params?: any)                  => api.get('/admin/bookings', { params }),
   getSettings:      ()                              => api.get('/admin/settings'),
   updateSetting:    (key: string, value: any)       => api.patch(`/admin/settings/${key}`, { value }),
 }

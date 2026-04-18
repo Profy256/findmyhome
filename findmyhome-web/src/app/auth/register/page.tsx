@@ -27,6 +27,7 @@ export default function RegisterPage() {
   const [role, setRole]             = useState('buyer')
   const [categories, setCategories] = useState<string[]>([])
   const [file, setFile]             = useState<File | null>(null)
+  const [termsAgreed, setTermsAgreed] = useState(false)
   const [uploading, setUploading]   = useState(false)
   const fileRef                     = useRef<HTMLInputElement>(null)
   const { setAuth } = useAuthStore()
@@ -49,6 +50,10 @@ export default function RegisterPage() {
   }
 
   const onSubmit = async (data: any) => {
+    if (!termsAgreed) {
+      toast.error('You must agree to the Terms & Conditions to register.')
+      return
+    }
     if (isSeller && categories.length === 0) {
       toast.error('Please select at least one property category.')
       return
@@ -77,7 +82,7 @@ export default function RegisterPage() {
         cloudinary_public_id = cldRes.data.public_id
       }
 
-      const payload = { ...data, role, seller_categories: isSeller ? categories : undefined, file_url, cloudinary_public_id }
+      const payload = { ...data, role, terms_agreed: true, seller_categories: isSeller ? categories : undefined, file_url, cloudinary_public_id }
       const res = await authApi.register(payload)
       setAuth(res.data.user, res.data.token)
       toast.success('Account created! Welcome to Find My Home.')
@@ -248,7 +253,7 @@ export default function RegisterPage() {
                     {strictest >= 95
                       ? 'You have selected Land. We are very strict on land sellers. A clear National ID is required, and you must upload a land title for every land listing you post. This protects buyers from fraud.'
                       : strictest >= 90
-                      ? 'You have selected Apartments. We are moderately strict. A clear National ID or Passport is required.'
+                      ? 'You have selected Apartments or Houses. We are moderately strict. A clear National ID or Passport is required.'
                       : 'Light verification required. A clear National ID or Passport is all you need to get verified.'}
                   </p>
                 </div>
@@ -260,6 +265,24 @@ export default function RegisterPage() {
             {isSubmitting || uploading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
+
+        <div className="mt-4 text-xs text-stone">
+          <label className="flex items-start gap-2">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={termsAgreed}
+              onChange={(e) => setTermsAgreed(e.target.checked)}
+              required
+            />
+            <span>
+              I have read and agree to the{' '}
+              <Link href="/terms" target="_blank" className="text-ink font-medium hover:underline">Terms &amp; Conditions</Link>
+              {' '}and{' '}
+              <Link href="/privacy" target="_blank" className="text-ink font-medium hover:underline">Privacy Policy</Link>.
+            </span>
+          </label>
+        </div>
 
         <p className="text-sm text-stone text-center mt-6">
           Already have an account?{' '}<Link href="/auth/login" className="text-ink font-medium hover:underline">Sign in</Link>

@@ -20,8 +20,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'seller.active'    => \App\Http\Middleware\EnsureSellerNotBlocked::class,
         ]);
 
-        // Allow all API routes to be stateless
-        $middleware->statefulApi();
+        // The frontend fully uses Bearer tokens (stateless mode),
+        // so we do not need session cookies or CSRF validation for the API.
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // Return JSON for all API errors

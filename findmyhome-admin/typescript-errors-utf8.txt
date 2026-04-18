@@ -1,1 +1,0 @@
-﻿src/app/admin/bookings/page.tsx(19,32): error TS2339: Property 'listBookings' does not exist on type '{ dashboard: () => Promise<AxiosResponse<any, any, {}>>; users: (params?: any) => Promise<AxiosResponse<any, any, {}>>; viewUser: (id: string) => Promise<...>; ... 23 more ...; updateSetting: (key: string, value: any) => Promise<...>; }'.

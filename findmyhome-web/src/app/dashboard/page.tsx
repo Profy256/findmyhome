@@ -24,7 +24,7 @@ export default function DashboardPage() {
     Promise.all(calls).then(([n, l, p]) => {
       setNotifs(n.data); setLeads(l?.data); setListings(p?.data)
     }).finally(() => setLoading(false))
-  }, [])
+  }, [user?.role])
 
   const kycStatus = user?.kyc_status
 

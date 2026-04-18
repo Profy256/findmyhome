@@ -9,10 +9,13 @@ import toast from 'react-hot-toast'
 import { Eye, EyeOff, Home } from 'lucide-react'
 
 export default function LoginPage() {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm()
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting, isValid } } = useForm({ mode: 'onChange' })
   const [showPw, setShowPw] = useState(false)
   const { setAuth } = useAuthStore()
   const router = useRouter()
+
+  const email = watch('email')
+  const password = watch('password')
 
   const onSubmit = async (data: any) => {
     try {
@@ -57,20 +60,42 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-ink mb-1.5 uppercase tracking-wide">Email</label>
-              <input type="email" placeholder="you@example.com" className="input" {...register('email', { required: 'Email is required' })} />
+              <input
+                type="email"
+                placeholder="you@example.com"
+                className="input"
+                autoComplete="email"
+                inputMode="email"
+                spellCheck={false}
+                {...register('email', {
+                  required: 'Email is required',
+                  pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email address.' },
+                })}
+              />
               {errors.email && <p className="text-red-500 text-xs mt-1">{String(errors.email.message)}</p>}
+              {!errors.email && email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email)) && <p className="text-forest text-xs mt-1">Looks good.</p>}
             </div>
             <div>
               <label className="block text-xs font-medium text-ink mb-1.5 uppercase tracking-wide">Password</label>
               <div className="relative">
-                <input type={showPw ? 'text' : 'password'} placeholder="Your password" className="input pr-10" {...register('password', { required: 'Password is required' })} />
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  placeholder="Your password"
+                  className="input pr-10"
+                  autoComplete="current-password"
+                  {...register('password', {
+                    required: 'Password is required',
+                    minLength: { value: 8, message: 'Password must be at least 8 characters.' },
+                  })}
+                />
                 <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-dust">
                   {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
               {errors.password && <p className="text-red-500 text-xs mt-1">{String(errors.password.message)}</p>}
+              {!errors.password && password && String(password).length >= 8 && <p className="text-forest text-xs mt-1">Looks good.</p>}
             </div>
-            <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3.5 mt-2">
+            <button type="submit" disabled={isSubmitting || !isValid} className="btn-primary w-full py-3.5 mt-2">
               {isSubmitting ? 'Signing in...' : 'Sign In'}
             </button>
           </form>

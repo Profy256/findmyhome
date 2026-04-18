@@ -6,6 +6,9 @@ return [
     'allowed_origins'          => array_filter([
         env('FRONTEND_URL'),
         'http://localhost:3000',
+        'http://localhost:3001',   // Admin Next.js
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001',
         'http://localhost:8081',   // Expo dev
         'http://localhost:19006',  // Expo web
         'https://expo.dev',

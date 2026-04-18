@@ -68,12 +68,12 @@ class CommissionEnforcementService
         $r2 = Setting::get('commission_reminder_2_days', 7);
         $r3 = Setting::get('commission_reminder_3_days', 14);
 
-        if      ($commission->reminder_count < 3 && $daysOverdue >= $r3) $this->sendReminder($commission, 3);
-        elseif  ($commission->reminder_count < 2 && $daysOverdue >= $r2) $this->sendReminder($commission, 2);
-        elseif  ($commission->reminder_count < 1 && $daysOverdue >= $r1) $this->sendReminder($commission, 1);
+        if      ($commission->reminder_count < 3 && $daysOverdue >= $r3) $this->sendReminder($commission, 3, $daysOverdue);
+        elseif  ($commission->reminder_count < 2 && $daysOverdue >= $r2) $this->sendReminder($commission, 2, $daysOverdue);
+        elseif  ($commission->reminder_count < 1 && $daysOverdue >= $r1) $this->sendReminder($commission, 1, $daysOverdue);
     }
 
-    private function sendReminder(Commission $commission, int $number): void
+    private function sendReminder(Commission $commission, int $number, int $daysOverdue = 0): void
     {
         $commission->update([
             'reminder_count'   => $number,
@@ -92,7 +92,7 @@ class CommissionEnforcementService
             'commission_id' => $commission->id,
             'seller_id'     => $commission->seller_id,
             'amount_ugx'    => $commission->commission_amount,
-            'days_overdue'  => $daysOverdue ?? 0,
+            'days_overdue'  => $daysOverdue,
         ]);
     }
 

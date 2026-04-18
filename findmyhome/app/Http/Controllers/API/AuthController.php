@@ -19,13 +19,14 @@ class AuthController extends Controller
             'email'              => 'required|email|unique:users',
             'phone'              => 'required|string|unique:users',
             'password'           => ['required', Password::min(8)],
-            'role'               => 'required|in:buyer,seller,company',
+            'role'               => 'required|in:buyer,seller,company,admin',
+            'terms_agreed'       => 'required|accepted',
             'company_name'       => 'required_if:role,company|nullable|string|max:255',
             'registration_number'=> 'nullable|string|max:100',
 
             // Seller categories — required for sellers and companies, multi-select
             'seller_categories'  => 'required_if:role,seller|required_if:role,company|nullable|array',
-            'seller_categories.*'=> 'in:land,apartment,house_rent,short_stay,lodge',
+            'seller_categories.*'=> 'in:land,apartment,house,rental,airbnb,lodge',
 
             // Document upload for sellers/companies
             'file_url'           => 'required_if:role,seller,company|url|nullable',
@@ -40,6 +41,8 @@ class AuthController extends Controller
             ], 422);
         }
 
+        $isSeller = in_array($data['role'], ['seller', 'company']);
+
         $user = User::create([
             'name'                => $data['name'],
             'email'               => $data['email'],
@@ -48,7 +51,9 @@ class AuthController extends Controller
             'role'                => $data['role'],
             'company_name'        => $data['company_name'] ?? null,
             'registration_number' => $data['registration_number'] ?? null,
-            'seller_categories'   => $data['seller_categories'] ?? null,
+            // Buyers must never have seller_categories stored
+            'seller_categories'   => $isSeller ? ($data['seller_categories'] ?? null) : null,
+            'terms_agreed_at'     => now(),
         ]);
 
         if (in_array($data['role'], ['seller', 'company']) && !empty($data['file_url'])) {
@@ -198,9 +203,10 @@ class AuthController extends Controller
             'phone'             => 'sometimes|string|unique:users,phone,' . $user->id,
             'company_name'      => 'nullable|string|max:255',
             'seller_categories' => 'nullable|array',
-            'seller_categories.*' => 'in:land,apartment,house_rent,short_stay,lodge',
+            'seller_categories.*' => 'in:land,apartment,house,rental,airbnb,lodge',
         ]);
         $user->update($data);
         return response()->json(['message' => 'Profile updated.', 'user' => $this->userPayload($user->fresh())]);
     }
+
 }

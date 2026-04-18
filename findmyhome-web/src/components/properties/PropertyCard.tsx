@@ -30,15 +30,17 @@ const TYPE_GRADIENTS: Record<string, string> = {
   commercial: 'from-purple-900 to-purple-700',
   rental:     'from-orange-900 to-orange-700',
   airbnb:     'from-pink-900 to-pink-700',
+  lodge:      'from-amber-900 to-amber-700',
 }
 
 const TYPE_IMAGE: Record<string, string> = {
-  house: '/categories/house.svg',
-  apartment: '/categories/apartments.svg',
-  land: '/categories/land.svg',
+  house:      '/categories/house.svg',
+  apartment:  '/categories/apartments.svg',
+  land:       '/categories/land.svg',
   commercial: '/categories/commercial.svg',
-  rental: '/categories/rental.svg',
-  airbnb: '/categories/airbnb.svg',
+  rental:     '/categories/rental.svg',
+  airbnb:     '/categories/airbnb.svg',
+  lodge:      '/categories/lodge.svg',
 }
 
 export function PropertyCard({ property, className }: PropertyCardProps) {
@@ -62,8 +64,12 @@ export function PropertyCard({ property, className }: PropertyCardProps) {
           {/* Badges */}
           <div className="absolute top-3 left-3 flex gap-1.5">
             <span className={cn('text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-sm text-white',
-              property.listing_type === 'sale' ? 'bg-ink/80' : 'bg-forest/90')}>
-              {property.listing_type === 'sale' ? 'For Sale' : 'For Rent'}
+              property.listing_type === 'sale'       ? 'bg-ink/80' :
+              property.listing_type === 'short_stay' ? 'bg-amber-700/90' :
+              'bg-forest/90')}>
+              {property.listing_type === 'sale'       ? 'For Sale' :
+               property.listing_type === 'short_stay' ? 'Short Stay' :
+               'For Rent'}
             </span>
             {property.featured && (
               <span className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-sm bg-gold text-white">
