@@ -4,14 +4,18 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
 import { authApi } from '@/lib/api'
 import { Bell, Menu, X, Home } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 
 export function Navbar() {
   const { user, isAuthenticated, clearAuth } = useAuthStore()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
   const router   = useRouter()
+
+  // Defer auth UI until after client hydration to prevent SSR mismatch
+  useEffect(() => { setMounted(true) }, [])
 
   const handleLogout = async () => {
     try { await authApi.logout() } catch {}
@@ -56,7 +60,13 @@ export function Navbar() {
 
           {/* Right actions */}
           <div className="flex items-center gap-3">
-            {isAuthenticated() ? (
+            {/* Render nothing auth-specific until mounted (avoids SSR hydration mismatch) */}
+            {!mounted ? (
+              <div className="flex items-center gap-3">
+                <div className="w-16 h-8 rounded-lg bg-cream animate-pulse hidden md:block" />
+                <div className="w-24 h-8 rounded-lg bg-sand animate-pulse" />
+              </div>
+            ) : isAuthenticated() ? (
               <>
                 <Link href="/dashboard/notifications"
                   className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-cream relative">

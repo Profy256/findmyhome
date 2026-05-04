@@ -1,5 +1,5 @@
 services:
-  # Database
+  # ── Database ────────────────────────────────────────────────────────────────
   db:
     image: postgres:15-alpine
     container_name: findmyhome-db
@@ -12,40 +12,35 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-findmyhome}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-  # Redis
-  redis:
-    image: redis:7-alpine
-    container_name: findmyhome-redis
-    restart: always
-    ports:
-      - "6379:6379"
-
-  # Backend API
+  # ── Backend API (Go / Gin) ───────────────────────────────────────────────────
   api:
     build:
-      context: ./findmyhome
+      context: ./findmyhome-go
       dockerfile: Dockerfile
     container_name: findmyhome-api
     restart: always
     depends_on:
-      - db
-      - redis
-    env_file:
-      - ./findmyhome/.env
+      db:
+        condition: service_healthy
     environment:
-      APP_ENV: production
-      APP_DEBUG: "false"
-      DB_CONNECTION: pgsql
-      DB_HOST: db
-      DB_PORT: 5432
-      REDIS_HOST: redis
-      QUEUE_CONNECTION: redis
-      CACHE_DRIVER: redis
+      GIN_MODE: release
+      ADDR: :8000
+      DATABASE_URL: postgres://${DB_USERNAME:-postgres}:${DB_PASSWORD:-password}@db:5432/${DB_DATABASE:-findmyhome}?sslmode=disable
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8000}
+      PESAPAL_CONSUMER_KEY: ${PESAPAL_CONSUMER_KEY:-}
+      PESAPAL_CONSUMER_SECRET: ${PESAPAL_CONSUMER_SECRET:-}
+      PESAPAL_ENV: ${PESAPAL_ENV:-sandbox}
     ports:
       - "8000:8000"
 
-  # Web Frontend
+  # ── Web Frontend (Next.js) ───────────────────────────────────────────────────
   web:
     build:
       context: ./findmyhome-web
@@ -62,7 +57,7 @@ services:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
 
-  # Admin Panel
+  # ── Admin Panel (Next.js) ────────────────────────────────────────────────────
   admin:
     build:
       context: ./findmyhome-admin
@@ -78,43 +73,6 @@ services:
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
-
-  # Worker — processes KYC analysis, notification, and other queued jobs
-  worker:
-    build:
-      context: ./findmyhome
-      dockerfile: Dockerfile
-    container_name: findmyhome-worker
-    restart: always
-    depends_on:
-      - api
-      - db
-      - redis
-    entrypoint: [ "php", "artisan", "queue:work", "--queue=kyc,default", "--sleep=3", "--tries=3", "--timeout=90" ]
-    env_file:
-      - ./findmyhome/.env
-    environment:
-      DB_HOST: db
-      REDIS_HOST: redis
-      QUEUE_CONNECTION: redis
-
-  # Scheduler — runs artisan schedule:run every minute
-  scheduler:
-    build:
-      context: ./findmyhome
-      dockerfile: Dockerfile
-    container_name: findmyhome-scheduler
-    restart: always
-    depends_on:
-      - api
-      - db
-      - redis
-    entrypoint: [ "sh", "-c", "while [ true ]; do php artisan schedule:run; sleep 60; done" ]
-    env_file:
-      - ./findmyhome/.env
-    environment:
-      DB_HOST: db
-      REDIS_HOST: redis
 
 volumes:
   pgdata:

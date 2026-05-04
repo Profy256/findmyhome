@@ -1,246 +1,255 @@
 # Find My Home — Production Deployment Guide
 
+Stack: **Go/Gin API → Render** · **PostgreSQL → Neon** · **Frontends → Vercel**
+
 ---
 
-## BEFORE YOU START — Critical Steps
+## Overview
 
-### Step 0 — Generate APP_KEY locally
-```bash
-cd findmyhome
-composer install
-php artisan key:generate --show
-# Copy the output: base64:xxxx...
-# Paste it as APP_KEY in Railway environment variables
 ```
-**Never run `php artisan key:generate` on the live server after users exist.
-It invalidates all sessions and logs everyone out.**
+Vercel (Web + Admin)   ──► Render (Go API) ──► Neon (PostgreSQL)
+Expo (Mobile)          ──►        │
+                                  └──► Cloudinary · Pesapal
+```
 
 ---
 
-## Step 1 — Deploy Backend on Railway
+## Step 0 — Push Code to GitHub
 
-### 1.1 Create GitHub Repositories
+You need **separate GitHub repos** for each deployable unit (or one monorepo — both work).
+
 ```bash
-# Backend
-cd findmyhome
+# From the monorepo root
+cd findmyhome-go
 git init
 git add .
-git commit -m "Find My Home backend v1.0"
+git commit -m "feat: Go/Gin backend"
 git remote add origin https://github.com/YOUR_USERNAME/findmyhome-api.git
 git push -u origin main
 
-# Frontend
-cd findmyhome-web
-git init && git add . && git commit -m "Find My Home web v1.0"
+cd ../findmyhome-web
+git init && git add . && git commit -m "feat: web frontend"
 git remote add origin https://github.com/YOUR_USERNAME/findmyhome-web.git
 git push -u origin main
 
-# Admin Panel
-cd findmyhome-admin
-git init && git add . && git commit -m "Find My Home admin v1.0"
+cd ../findmyhome-admin
+git init && git add . && git commit -m "feat: admin panel"
 git remote add origin https://github.com/YOUR_USERNAME/findmyhome-admin.git
 git push -u origin main
-
-# Mobile
-cd findmyhome-mobile
-git init && git add . && git commit -m "Find My Home mobile v1.0"
-git remote add origin https://github.com/YOUR_USERNAME/findmyhome-mobile.git
-git push -u origin main
 ```
-
-### 1.2 Set Up Railway
-1. Go to https://railway.app → New Project
-2. **Service 1:** New Service → GitHub → `findmyhome-api` → name it `api`
-3. **Service 2:** New Service → Database → PostgreSQL → name it `db`
-4. **Service 3:** New Service → GitHub → same `findmyhome-api` → name it `worker`
-   - Override start command: `php artisan queue:work --queue=kyc,default --sleep=3 --tries=2 --memory=256`
-5. **Service 4:** New Service → GitHub → same `findmyhome-api` → name it `scheduler`
-   - Override start command: `php artisan schedule:work`
-
-### 1.3 Environment Variables for Railway API service
-```env
-APP_NAME=Find My Home
-APP_ENV=production
-APP_DEBUG=false
-APP_KEY=base64:YOUR_GENERATED_KEY_HERE          ← from Step 0
-APP_URL=https://YOUR-API.railway.app
-
-# Railway auto-populates this from the PostgreSQL service:
-DATABASE_URL=${{db.DATABASE_URL}}
-
-CLOUDINARY_URL=cloudinary://KEY:SECRET@CLOUDNAME
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-
-AT_USERNAME=your_africastalking_username
-AT_API_KEY=your_africastalking_key
-AT_SENDER_ID=FindMyHome
-
-RESEND_KEY=re_your_resend_key
-MAIL_FROM_ADDRESS=hello@findmyhome.ug
-MAIL_FROM_NAME=Find My Home
-
-GOOGLE_VISION_API_KEY=your_google_vision_key
-
-PESAPAL_CONSUMER_KEY=your_key
-PESAPAL_CONSUMER_SECRET=your_secret
-PESAPAL_ENV=sandbox                              ← change to 'live' when ready
-PESAPAL_IPN_URL=https://YOUR-API.railway.app/api/payments/ipn
-
-FIREBASE_PROJECT_ID=your_firebase_project_id
-
-FRONTEND_URL=https://your-app.vercel.app
-QUEUE_CONNECTION=database
-CACHE_DRIVER=database
-SESSION_DRIVER=database
-MAIL_MAILER=resend
-```
-
-### 1.4 After First Deploy
-```bash
-# In Railway shell for the API service:
-php artisan db:seed --force
-```
-
-### 1.5 Verify
-`GET https://YOUR-API.railway.app/api/health` → `{"status":"ok"}`
 
 ---
 
-## Step 2 — Deploy Frontends on Vercel
+## Step 1 — Database on Neon
 
-### 2.1 Deploy Web Frontend
-1. Go to https://vercel.com → Import → `findmyhome-web`
-2. Add environment variables:
+1. Go to [https://neon.tech](https://neon.tech) → **New Project**
+2. Name it `findmyhome`, region: closest to your users (e.g. `eu-west-1`)
+3. Copy the **Connection string** — it looks like:
+   ```
+   postgres://username:password@ep-xxx.eu-west-1.aws.neon.tech/findmyhome?sslmode=require
+   ```
+4. Run your schema migrations against it (using `psql` or any migration tool):
+   ```bash
+   psql "postgres://..." -f schema.sql
+   ```
+5. *(Optional)* Seed admin & demo accounts if you have a seed script.
+
+> 💡 Neon's free tier gives 0.5 GB storage + auto-suspend after 5 min idle. Upgrade to Pro for always-on.
+
+---
+
+## Step 2 — Backend API on Render
+
+### 2.1 Create the Web Service
+
+1. Go to [https://render.com](https://render.com) → **New → Web Service**
+2. Connect your `findmyhome-api` GitHub repo
+3. Configure:
+
+| Setting | Value |
+|---|---|
+| **Name** | `findmyhome-api` |
+| **Region** | Closest to your Neon DB region |
+| **Branch** | `main` |
+| **Root Directory** | *(leave blank — Dockerfile is in repo root)* |
+| **Runtime** | **Docker** |
+| **Instance Type** | Free (or Starter for always-on) |
+
+Render will auto-detect the `Dockerfile` and build the Go binary inside it.
+
+### 2.2 Environment Variables (Render Dashboard → Environment)
+
 ```env
-NEXT_PUBLIC_API_URL=https://YOUR-API.railway.app/api/v1
+GIN_MODE=release
+ADDR=:8000
+
+# From Neon Step 1 — must include ?sslmode=require
+DATABASE_URL=postgres://user:pass@ep-xxx.neon.tech/findmyhome?sslmode=require
+
+# Your Vercel web frontend URL (set after Step 3)
+FRONTEND_URL=https://your-app.vercel.app
+
+# The Render service's own public URL
+PUBLIC_API_URL=https://findmyhome-api.onrender.com
+
+# Pesapal — leave blank until payment testing
+PESAPAL_CONSUMER_KEY=your_key
+PESAPAL_CONSUMER_SECRET=your_secret
+PESAPAL_ENV=sandbox
+```
+
+> ⚠️ `DATABASE_URL` **must** have `sslmode=require` for Neon — plain `disable` will be rejected.
+
+### 2.3 Health Check
+
+After first deploy (takes ~3 min on free tier):
+```
+GET https://findmyhome-api.onrender.com/api/health
+→ { "status": "ok", "service": "Find My Home API", "version": "1.0.0" }
+```
+
+---
+
+## Step 3 — Frontends on Vercel
+
+### 3.1 Web Frontend
+
+1. [https://vercel.com](https://vercel.com) → **Add New Project** → Import `findmyhome-web`
+2. Framework Preset: **Next.js** (auto-detected)
+3. Environment Variables:
+
+```env
+NEXT_PUBLIC_API_URL=https://findmyhome-api.onrender.com/api/v1
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
 NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=findmyhome_photos
 ```
 
-### 2.2 Deploy Admin Panel
-1. Go to https://vercel.com → Import → `findmyhome-admin`
-2. Add environment variables:
+4. Deploy → copy the Vercel URL (e.g. `https://findmyhome.vercel.app`)
+5. **Go back to Render** → update `FRONTEND_URL` to this URL → Redeploy
+
+### 3.2 Admin Panel
+
+1. Vercel → **Add New Project** → Import `findmyhome-admin`
+2. Environment Variables:
+
 ```env
-NEXT_PUBLIC_API_URL=https://YOUR-API.railway.app/api/v1
+NEXT_PUBLIC_API_URL=https://findmyhome-api.onrender.com/api/v1
 ```
 
 ---
 
-## Step 3 — Cloudinary Setup (IMPORTANT — Security)
+## Step 4 — Cloudinary (Media & KYC Security)
 
-### 3.1 Create TWO upload presets
-In Cloudinary dashboard → Settings → Upload → Add upload preset:
+### Create TWO upload presets
 
-**Preset 1 — Property Photos (unsigned, safe)**
-- Name: `findmyhome_photos`
-- Signing mode: **Unsigned**
-- Folder: `findmyhome/properties`
-- Max file size: 10MB
-- Allowed formats: jpg, png, webp
+**Dashboard → Settings → Upload → Add upload preset**
 
-**Preset 2 — KYC Documents (SIGNED — security critical)**
-- Name: `findmyhome_kyc`
-- Signing mode: **Signed**
-- Folder: `findmyhome/kyc`
-- Access mode: **Private** (documents NOT publicly accessible)
-- Max file size: 5MB
-- Allowed formats: jpg, png, pdf
+| | Preset 1 (Photos) | Preset 2 (KYC Documents) |
+|---|---|---|
+| **Name** | `findmyhome_photos` | `findmyhome_kyc` |
+| **Signing mode** | **Unsigned** | **Signed** |
+| **Folder** | `findmyhome/properties` | `findmyhome/kyc` |
+| **Access mode** | Public | **Private** |
+| **Max file size** | 10 MB | 5 MB |
+| **Allowed formats** | jpg, png, webp | jpg, png, pdf |
 
-> ⚠️ KYC documents contain National IDs and passports.
-> They MUST use signed upload and private access mode.
-> Never use unsigned upload for KYC documents.
-
-Update mobile KYC screen to use signed upload preset for documents.
+> ⚠️ KYC documents contain National IDs and passports. They **must** use signed upload + private access. Never change this to unsigned.
 
 ---
 
-## Step 4 — Firebase Push Notifications
+## Step 5 — Pesapal Payments
 
-1. Go to https://console.firebase.google.com
-2. Create project → Add Android app (package: `ug.findmyhome.app`)
-3. Download `google-services.json` → place in `findmyhome-mobile/` root
-4. Add iOS app (bundle: `ug.findmyhome.app`) → download `GoogleService-Info.plist`
-5. Add `FIREBASE_PROJECT_ID` to Railway env vars
-
----
-
-## Step 5 — Africa's Talking SMS
-
-1. Register at https://africastalking.com
-2. Go live (off sandbox) before launch
-3. Top up SMS credits — Uganda MTN/Airtel delivery confirmed
+1. Register at [https://pesapal.com](https://pesapal.com) and complete business KYC
+2. Set `PESAPAL_ENV=sandbox` first and test with sandbox credentials
+3. The IPN (payment callback) URL is automatically:
+   ```
+   https://findmyhome-api.onrender.com/api/payments/ipn
+   ```
+   Register this exact URL in your Pesapal dashboard → IPN settings
+4. Once sandbox testing passes, switch to `PESAPAL_ENV=production` and live credentials
 
 ---
 
-## Step 6 — Pesapal Payments
+## Step 6 — Custom Domain (Optional)
 
-1. Register at https://pesapal.com
-2. Complete KYC on Pesapal (business verification)
-3. Switch `PESAPAL_ENV` from `sandbox` to `live`
-4. Set `PESAPAL_IPN_URL` to your live Railway URL
-5. Test a real UGX 1,000 payment before launch
+### API
+- Render Dashboard → Your Service → **Settings → Custom Domains**
+- Add `api.findmyhome.ug` → update your DNS CNAME
+
+### Frontends
+- Vercel Dashboard → Project → **Settings → Domains**
+- Add `findmyhome.ug` and `admin.findmyhome.ug`
+
+After adding custom domains, update:
+- `FRONTEND_URL` on Render → your production domain
+- `PUBLIC_API_URL` on Render → your API custom domain
 
 ---
 
-## Step 7 — Railway Database Backups
+## Step 7 — Neon Database Backups
 
-In Railway dashboard → PostgreSQL service → Settings → Backups:
-- Enable daily automated backups
-- Set retention: 7 days minimum
+Neon automatically maintains **7 days of point-in-time restore** on all plans.
+
+To take a manual snapshot:
+```bash
+pg_dump "postgres://..." --no-acl --no-owner -F c -f backup-$(date +%Y%m%d).dump
+```
 
 ---
 
 ## Step 8 — Pre-Launch Checklist
 
-- [ ] `GET /api/health` returns OK
-- [ ] Register buyer account
-- [ ] Register individual seller — category: Land
-- [ ] Upload KYC document — AI analysis completes
-- [ ] Create land listing — title document required
-- [ ] Register short stay seller — light KYC
-- [ ] Create short stay listing — no title required
-- [ ] Test WhatsApp lead tracking
-- [ ] Test platform enquiry lead
-- [ ] Login as admin → approve KYC manually
-- [ ] Change commission rate in Settings
-- [ ] Test password reset email
-- [ ] Test SMS notification (Africa's Talking)
-- [ ] Test Pesapal payment (sandbox)
-- [ ] Verify duplicate detection fires on similar listing
-- [ ] Check commission enforcement runs (advance date in DB to test)
-- [ ] Verify company account gets blue badge on KYC approval
-- [ ] Test mobile app on Android device
-- [ ] Test mobile app on iOS device
+- [ ] `GET /api/health` returns `{ "status": "ok" }`
+- [ ] Register a buyer account via web frontend
+- [ ] Register an individual seller (category: Land)
+- [ ] Upload KYC document via mobile/web
+- [ ] Admin approves KYC → seller `kyc_status = verified`
+- [ ] Create a Land listing — verify land title is required
+- [ ] Create a Short Stay listing — verify booking is available
+- [ ] Send a WhatsApp lead — verify it appears in admin leads
+- [ ] Send a platform enquiry — verify it appears in admin leads
+- [ ] Book a short-stay property → verify Pesapal URL returned
+- [ ] Test Pesapal IPN with sandbox payment → booking confirmed
+- [ ] Register a company account → upload business certificate
+- [ ] Admin approves company KYC → verify Blue Badge appears
+- [ ] Change commission rate in Admin Settings
+- [ ] Test password forgot/reset flow
+- [ ] Verify CORS — web frontend can call API without errors
+- [ ] Check Render logs for any startup errors
 
 ---
 
-## API Base URL
-All endpoints: `https://YOUR-API.railway.app/api/v1/`
+## Environment Variables Reference
 
-## Test Accounts (from seeder)
+### Go API (Render)
+
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | ✅ | Full Neon postgres DSN with `sslmode=require` |
+| `GIN_MODE` | ✅ | Set to `release` in production |
+| `ADDR` | — | Listen address, default `:8000` |
+| `FRONTEND_URL` | ✅ | Your Vercel web URL (for CORS) |
+| `PUBLIC_API_URL` | ✅ | Your Render URL (for Pesapal callbacks) |
+| `PESAPAL_CONSUMER_KEY` | — | Pesapal API key |
+| `PESAPAL_CONSUMER_SECRET` | — | Pesapal API secret |
+| `PESAPAL_ENV` | — | `sandbox` or `production` |
+
+### Web / Admin (Vercel)
+
+| Variable | Required | Description |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | ✅ | `https://your-api.onrender.com/api/v1` |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | ✅ | Your Cloudinary cloud name |
+| `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` | ✅ | `findmyhome_photos` |
+
+---
+
+## Test Accounts (seed your DB with these)
+
 | Role | Email | Password |
-|------|-------|----------|
+|---|---|---|
 | Admin | admin@findmyhome.ug | Admin@2024! |
 | Company | info@primeestates.ug | Seller@2024! |
 | Land Seller | grace.namukasa@gmail.com | Seller@2024! |
 | Short Stay Host | kevin.ochieng@gmail.com | Seller@2024! |
 | Buyer | peter.ochieng@gmail.com | Buyer@2024! |
-
----
-
-## Architecture
-```
-Vercel (Next.js Web)   ──────► Railway API (Laravel) ──────► PostgreSQL
-Vercel (Next.js Admin) ──────►        │
-Expo (React Native)    ──────►        │
-                                    ├──► Railway Worker (Queue jobs)
-                                    ├──► Railway Scheduler (Daily tasks)
-                                    ├──► Cloudinary (Photos + KYC docs)
-                                    ├──► Africa's Talking (SMS)
-                                    ├──► Resend (Email)
-                                    ├──► Firebase FCM (Push)
-                                    ├──► Google Vision (KYC AI)
-                                    └──► Pesapal (Payments)
-```

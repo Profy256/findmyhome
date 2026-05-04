@@ -1,136 +1,94 @@
 # Find My Home — Local Development Setup Guide
 
-Run the full stack locally: Laravel API + Next.js Web + React Native Mobile
+Run the full stack locally: **Go API + Next.js Web + Next.js Admin + React Native Mobile**
 
 ---
 
-## What You Need to Install First
+## Prerequisites
 
 | Tool | Version | Download |
 |------|---------|----------|
-| PHP | 8.2+ | https://php.net/downloads |
-| Composer | Latest | https://getcomposer.org |
-| Node.js | 18+ | https://nodejs.org |
-| PostgreSQL | 15+ | https://postgresql.org/download |
-| Git | Latest | https://git-scm.com |
+| **Go** | 1.23+ | https://go.dev/dl/ |
+| **Node.js** | 18+ | https://nodejs.org |
+| **PostgreSQL** | 15+ | https://postgresql.org/download |
+| **Git** | Latest | https://git-scm.com |
 
-> **Windows users:** Install PHP via XAMPP (https://apachefriends.org) or Laragon (https://laragon.org — recommended, easiest).
-> **Mac users:** Install PHP via Homebrew: `brew install php composer`
-> **Ubuntu/Linux:** `sudo apt install php8.2 php8.2-pgsql php8.2-mbstring php8.2-xml php8.2-curl php8.2-zip php8.2-bcmath composer`
+> **Windows:** Install PostgreSQL via the official installer. Go and Node have simple `.msi` installers.  
+> **Mac:** `brew install go node postgresql@15`  
+> **Ubuntu/Debian:** `sudo apt install golang-go nodejs npm postgresql-15`
 
 ---
 
-## Part 1 — Backend (Laravel API)
+## Part 1 — Backend (Go / Gin API)
 
-### Step 1 — Install PHP dependencies
+### Step 1 — Create the PostgreSQL database
 ```bash
-cd findmyhome
-composer install
-```
-
-### Step 2 — Create your environment file
-```bash
-cp .env.example .env
-```
-
-### Step 3 — Open `.env` and fill in these values
-```env
-APP_NAME="Find My Home"
-APP_ENV=local
-APP_DEBUG=true
-APP_URL=http://localhost:8000
-
-# Database — your local PostgreSQL
-DB_CONNECTION=pgsql
-DB_HOST=127.0.0.1
-DB_PORT=5432
-DB_DATABASE=findmyhome
-DB_USERNAME=postgres
-DB_PASSWORD=your_postgres_password
-
-# Leave these as-is for local development
-QUEUE_CONNECTION=database
-CACHE_DRIVER=database
-MAIL_MAILER=log          # emails print to storage/logs/laravel.log instead of sending
-SESSION_DRIVER=database
-
-# These are optional locally — features will gracefully skip if not set
-CLOUDINARY_URL=
-AT_USERNAME=
-AT_API_KEY=
-GOOGLE_VISION_API_KEY=
-PESAPAL_CONSUMER_KEY=
-RESEND_KEY=
-```
-
-> **Tip:** For local development, you don't need Cloudinary, Africa's Talking, or Resend.
-> Photos won't upload, emails will go to the log file, SMS won't send.
-> Everything else (listings, leads, KYC flow, commissions, admin) works fully.
-
-### Step 4 — Create the PostgreSQL database
-```bash
-# Option A: Using psql command line
+# Using psql
 psql -U postgres -c "CREATE DATABASE findmyhome;"
 
-# Option B: Using pgAdmin (GUI)
-# Right-click Databases → Create → Database → name it "findmyhome"
-
-# Option C: Using TablePlus, DBeaver, or any DB client
-# Just create a new database named "findmyhome"
+# Or in pgAdmin / DBeaver: create a database named "findmyhome"
 ```
 
-### Step 5 — Generate your application key
+### Step 2 — Run your schema migrations
+Apply your SQL schema to the newly created database:
 ```bash
-php artisan key:generate
+psql -U postgres -d findmyhome -f schema.sql
 ```
-This writes `APP_KEY=base64:xxxx...` into your `.env` file automatically.
+> If you don't have a schema file yet, use your DB client to inspect the existing Neon/production database and export the DDL.
 
-### Step 6 — Run database migrations
+### Step 3 — Set environment variables
+
+The Go API reads config from environment variables. For local development, the simplest approach is to export them in your terminal:
+
+**Linux / Mac:**
 ```bash
-php artisan migrate
+export DATABASE_URL="postgres://postgres:your_password@localhost:5432/findmyhome?sslmode=disable"
+export FRONTEND_URL="http://localhost:3000"
+export PUBLIC_API_URL="http://localhost:8000"
+# Optional — Pesapal (leave blank locally, payments will be skipped)
+export PESAPAL_CONSUMER_KEY=""
+export PESAPAL_CONSUMER_SECRET=""
+export PESAPAL_ENV="sandbox"
 ```
-This creates all 12 tables in your database.
 
-### Step 7 — Seed test data
+**Windows (PowerShell):**
+```powershell
+$env:DATABASE_URL = "postgres://postgres:your_password@localhost:5432/findmyhome?sslmode=disable"
+$env:FRONTEND_URL = "http://localhost:3000"
+$env:PUBLIC_API_URL = "http://localhost:8000"
+```
+
+**Or create a `.env` file and use a tool like `godotenv`** — but plain env exports work fine for local dev.
+
+### Step 4 — Start the API server
 ```bash
-php artisan db:seed
-```
-This creates test accounts and sample properties. You'll see:
-```
-✅ Database seeded.
-
-Test accounts:
-  Admin:             admin@findmyhome.ug        / Admin@2024!
-  Company:           info@primeestates.ug       / Seller@2024!
-  Land Seller:       grace.namukasa@gmail.com   / Seller@2024!
-  Short Stay Host:   kevin.ochieng@gmail.com    / Seller@2024!
-  Buyer:             peter.ochieng@gmail.com    / Buyer@2024!
+cd findmyhome-go
+go run ./cmd/server
 ```
 
-### Step 8 — Start the Laravel server
-```bash
-php artisan serve
+You should see:
 ```
-API is now running at: **http://localhost:8000**
+2026/05/04 08:00:00 INFO listening addr=:8000
+```
 
 Test it:
 ```bash
 curl http://localhost:8000/api/health
-# Should return: {"status":"ok","service":"Find My Home API","version":"1.0.0"}
+# → {"service":"Find My Home API","status":"ok","version":"1.0.0"}
 ```
 
-### Step 9 — Start the queue worker (separate terminal)
-Open a new terminal window and run:
+### Step 5 — (Optional) Build a binary
 ```bash
-cd findmyhome
-php artisan queue:work --queue=kyc,default
+cd findmyhome-go
+go build -o findmyhome-api ./cmd/server
+./findmyhome-api
 ```
-This processes background jobs (KYC AI analysis, duplicate detection, notifications).
-Keep this running while testing.
+
+> **Note:** There is no queue worker or scheduler to run. Unlike the old Laravel backend, the Go API has no background processes — everything is handled synchronously per request.
 
 ---
 
-## Part 2 — Frontend (Next.js Web)
+## Part 2 — Web Frontend (Next.js)
 
 ### Step 1 — Install dependencies
 ```bash
@@ -149,18 +107,17 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
 NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=findmyhome_photos
 ```
-> The `NEXT_PUBLIC_API_URL` points to your Laravel server running on port 8000.
-> Cloudinary is optional locally — photo upload won't work but everything else will.
+> Cloudinary is optional locally — photo upload won't work but all other features will.
 
-### Step 4 — Start the development server
+### Step 4 — Start the dev server
 ```bash
 npm run dev
 ```
-Web app is now running at: **http://localhost:3000**
+Web app: **http://localhost:3000**
 
 ---
 
-## Part 2B — Admin Panel (Next.js Web)
+## Part 2B — Admin Panel (Next.js)
 
 ### Step 1 — Install dependencies
 ```bash
@@ -168,229 +125,235 @@ cd findmyhome-admin
 npm install
 ```
 
-### Step 2 — Environment file
-Ensure `.env.local` exists with:
+### Step 2 — Ensure `.env.local` exists
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 ```
 
-### Step 3 — Start the development server
+### Step 3 — Start the dev server
 ```bash
-npm run dev
+npm run dev -- --port 3001
 ```
-Admin app is now running at: **http://localhost:3001**
+Admin panel: **http://localhost:3001**
 
 ---
 
 ## Part 3 — Mobile App (React Native / Expo)
 
-### Step 1 — Install Expo CLI
-```bash
-npm install -g expo-cli
-```
-
-### Step 2 — Install dependencies
+### Step 1 — Install dependencies
 ```bash
 cd findmyhome-mobile
 npm install
 ```
 
-### Step 3 — Create environment file
+### Step 2 — Create environment file
 ```bash
 cp .env.example .env
 ```
 
-### Step 4 — Edit `.env`
+### Step 3 — Edit `.env`
 ```env
 EXPO_PUBLIC_API_URL=http://YOUR_LOCAL_IP:8000/api/v1
 EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
 EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET=findmyhome_photos
 ```
 
-> ⚠️ **Important:** Use your computer's local IP address, NOT `localhost`.
-> Your phone and computer must be on the same WiFi network.
+> ⚠️ **Use your machine's local IP address, NOT `localhost`.**  
+> Your phone and computer must be on the same Wi-Fi network.  
 >
-> Find your local IP:
+> Find your IP:
 > - **Mac:** `ipconfig getifaddr en0`
-> - **Windows:** `ipconfig` → look for IPv4 Address (e.g. 192.168.1.5)
+> - **Windows:** `ipconfig` → IPv4 Address (e.g. `192.168.1.5`)
 > - **Linux:** `hostname -I`
 >
 > Example: `EXPO_PUBLIC_API_URL=http://192.168.1.5:8000/api/v1`
 
-### Step 5 — Start Expo
+### Step 4 — Start Expo
 ```bash
 npx expo start
 ```
 
-You'll see a QR code in the terminal.
+### Step 5 — Run on your phone
+1. Install **Expo Go**: [Android](https://play.google.com/store/apps/details?id=host.exp.exponent) | [iOS](https://apps.apple.com/app/expo-go/id982107779)
+2. Scan the QR code shown in the terminal
 
-### Step 6 — Run on your phone
-1. Install **Expo Go** on your phone:
-   - Android: https://play.google.com/store/apps/details?id=host.exp.exponent
-   - iPhone: https://apps.apple.com/app/expo-go/id982107779
-2. Open Expo Go → Scan the QR code
-3. The app loads on your phone
-
-### Alternative — Run on Android emulator
+### Alternatives
 ```bash
-# Start Android emulator first (from Android Studio)
-npx expo start --android
-```
-
-### Alternative — Run on iOS simulator (Mac only)
-```bash
-npx expo start --ios
+npx expo start --android   # Android emulator (requires Android Studio)
+npx expo start --ios       # iOS simulator (Mac only, requires Xcode)
 ```
 
 ---
 
 ## Running Everything Together
 
-Open **5 terminal windows**:
+Open **4 terminal windows** (no queue worker needed):
 
 | Terminal | Directory | Command |
 |----------|-----------|---------|
-| 1 | `findmyhome/` | `php artisan serve` |
-| 2 | `findmyhome/` | `php artisan queue:work --queue=kyc,default` |
-| 3 | `findmyhome-web/` | `npm run dev` |
-| 4 | `findmyhome-admin/` | `npm run dev` |
-| 5 | `findmyhome-mobile/` | `npx expo start` |
+| 1 | `findmyhome-go/` | `go run ./cmd/server` |
+| 2 | `findmyhome-web/` | `npm run dev` |
+| 3 | `findmyhome-admin/` | `npm run dev -- --port 3001` |
+| 4 | `findmyhome-mobile/` | `npx expo start` |
 
-Then open:
-- **Web:** http://localhost:3000
-- **Admin:** http://localhost:3001
-- **API:** http://localhost:8000
-- **Mobile:** Scan QR code in Expo Go
+| Service | URL |
+|---------|-----|
+| API Health | http://localhost:8000/api/health |
+| API v1 base | http://localhost:8000/api/v1 |
+| Web App | http://localhost:3000 |
+| Admin Panel | http://localhost:3001 |
+| Mobile | Scan QR code in Expo Go |
+
+---
+
+## Option B — Run Everything with Docker
+
+If you'd rather not install Go or PostgreSQL locally, Docker Compose handles everything:
+
+```bash
+# From the monorepo root
+cp .env.example .env
+# Edit .env — set DB_PASSWORD at minimum
+
+docker compose up --build
+```
+
+Services start on the same ports as above. Logs are streamed to the terminal.
+
+To stop:
+```bash
+docker compose down
+# To also delete the database volume:
+docker compose down -v
+```
 
 ---
 
 ## Testing the Full Flow Locally
 
-### Test 1 — Buyer browses and contacts a seller
-1. Open http://localhost:3000
-2. Browse properties (seeded data is already there)
-3. Click a property → property detail page
-4. Click "Enquire" — lead is recorded
-5. Click "Chat on WhatsApp" — lead is recorded, WhatsApp opens
-
-### Test 2 — Register as a seller and get verified
-1. Click "List Your Property" → register as seller
-2. Select category: **Short Stay** (lightest KYC)
-3. Go to Dashboard → KYC
-4. Upload any clear photo of any document (Google Vision is optional locally)
-5. If `GOOGLE_VISION_API_KEY` is not set, document goes to "Pending" automatically
-6. Log in as admin → http://localhost:3001
-   - Email: admin@findmyhome.ug / Password: Admin@2024!
-7. Go to Admin → KYC → Approve the document manually
-
-### Test 3 — Create a land listing
-1. Log in as the verified land seller (grace.namukasa@gmail.com)
-2. Dashboard → New Listing
-3. Select type: Land
-4. Notice the land title field is **required** (individual seller rule)
-5. Fill in all fields including a title URL
-6. Submit → listing is created
-
-### Test 4 — Admin panel
-1. Log in as admin@findmyhome.ug
-2. Visit http://localhost:3001
-3. Try: blocking a user, freezing a listing, changing commission rate in Settings
-
-### Test 5 — Commission enforcement
-1. Go to your database and manually set a commission `due_date` to yesterday
-2. Run: `php artisan commissions:enforce`
-3. Check the log: `tail -f storage/logs/laravel.log`
-4. You'll see the commission reminder being processed
-
----
-
-## Checking Emails Locally
-
-Since `MAIL_MAILER=log` in local `.env`, all emails go to the log file instead of sending.
-
-To read emails:
+### Test 1 — Health check
 ```bash
-tail -f findmyhome/storage/logs/laravel.log
+curl http://localhost:8000/api/health
 ```
-Or open the file in any text editor. Every email is printed in full.
+
+### Test 2 — Register a buyer
+```bash
+curl -s -X POST http://localhost:8000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test Buyer",
+    "email": "buyer@test.com",
+    "phone": "+256700000001",
+    "password": "password123",
+    "role": "buyer",
+    "terms_agreed": true
+  }' | jq .
+```
+
+### Test 3 — Login and get token
+```bash
+curl -s -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"buyer@test.com","password":"password123"}' | jq .token
+```
+
+### Test 4 — Browse properties
+```bash
+curl http://localhost:8000/api/v1/properties | jq .
+```
+
+### Test 5 — Admin panel
+1. Open http://localhost:3001
+2. Login as `admin@findmyhome.ug` / `Admin@2024!`
+3. Go to **KYC** → approve a pending document
+4. Go to **Settings** → adjust commission rate
+
+### Test 6 — Create a land listing (authenticated)
+```bash
+TOKEN="<paste token from Test 3>"
+curl -s -X POST http://localhost:8000/api/v1/properties \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "1 Acre in Wakiso",
+    "description": "Flat, clean land with title",
+    "price": 45000000,
+    "location": "Wakiso",
+    "property_type": "land",
+    "photos": ["https://res.cloudinary.com/demo/image/upload/sample.jpg"],
+    "land_title_url": "https://res.cloudinary.com/demo/image/upload/sample.pdf"
+  }' | jq .
+```
 
 ---
 
 ## Common Problems & Fixes
 
-### "php: command not found"
-Install PHP. See the top of this guide for your OS.
-
-### "SQLSTATE: could not connect to server"
+### `connect: connection refused` (Go API)
 - Make sure PostgreSQL is running
-- Check `DB_PASSWORD` in `.env` matches your PostgreSQL password
-- Check `DB_DATABASE=findmyhome` database exists
+- Check `DATABASE_URL` — password, port, and database name
+- Try: `psql postgres://postgres:password@localhost:5432/findmyhome` to test the connection directly
 
-### "composer: command not found"
-Install Composer from https://getcomposer.org
+### Go API exits immediately with DB error
+```
+database connect db: failed to connect to "localhost:5432"...
+```
+- PostgreSQL isn't running. Start it:
+  - **Windows:** Open Services → start `postgresql-x64-15`
+  - **Mac:** `brew services start postgresql@15`
+  - **Linux:** `sudo systemctl start postgresql`
 
-### "npm: command not found"
+### `go: command not found`
+Install Go from https://go.dev/dl/ and make sure `$GOPATH/bin` is in your `PATH`.
+
+### `npm: command not found`
 Install Node.js from https://nodejs.org
 
-### Mobile app can't connect to API
-- Make sure you used your computer's IP address, not `localhost`
-- Both devices must be on the same WiFi
-- Make sure `php artisan serve` is running
-- Try: `php artisan serve --host=0.0.0.0 --port=8000`
-
-### "Class not found" error
-```bash
-composer dump-autoload
-```
-
-### Database migration errors
-```bash
-# Reset everything and start fresh
-php artisan migrate:fresh --seed
-```
+### Mobile can't reach API
+- Use your machine's LAN IP, not `localhost`
+- Make sure the Go server is listening on `0.0.0.0` — it does by default on `ADDR=:8000`
+- Check your firewall allows port 8000
 
 ### Port 8000 already in use
 ```bash
-php artisan serve --port=8001
-# Then update NEXT_PUBLIC_API_URL=http://localhost:8001/api/v1
-```
+# Linux/Mac
+ADDR=:8080 go run ./cmd/server
 
-### Queue jobs not running
-Make sure Terminal 2 (`php artisan queue:work`) is still running.
-If a job fails, check: `php artisan queue:failed`
+# Windows PowerShell
+$env:ADDR=":8080"; go run ./cmd/server
+```
+Then update `NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1` in the frontend `.env.local`.
+
+### CORS errors in browser
+Make sure `FRONTEND_URL` is set to exactly the origin the browser is using (e.g. `http://localhost:3000`). The Go API uses this value for CORS headers.
 
 ---
 
 ## Useful Commands
 
 ```bash
-# See all registered API routes
-php artisan route:list
+# Run all Go tests
+cd findmyhome-go && go test ./...
 
-# Clear all caches
-php artisan optimize:clear
+# Check the Go binary size
+cd findmyhome-go && go build -ldflags="-s -w" -o api ./cmd/server && ls -lh api
 
-# Reset database and re-seed
-php artisan migrate:fresh --seed
+# List all API routes (from router.go)
+grep -E '(GET|POST|PUT|PATCH|DELETE)' findmyhome-go/internal/api/router.go
 
-# Check failed queue jobs
-php artisan queue:failed
+# Connect to local DB
+psql postgres://postgres:password@localhost:5432/findmyhome
 
-# Retry all failed jobs
-php artisan queue:retry all
+# Inspect personal_access_tokens table (auth tokens)
+psql postgres://... -c "SELECT id, tokenable_id, name, created_at FROM personal_access_tokens ORDER BY created_at DESC LIMIT 5;"
 
-# Run commission enforcement manually
-php artisan commissions:enforce
+# Check properties
+psql postgres://... -c "SELECT id, title, status, seller_id FROM properties LIMIT 10;"
 
-# Open Laravel Tinker (PHP REPL for testing)
-php artisan tinker
-
-# Inside Tinker — find a user
-App\Models\User::where('email', 'admin@findmyhome.ug')->first()
-
-# Inside Tinker — check commission settings
-App\Models\Setting::commissionRate()
-App\Models\Setting::commissionBlockThreshold()
+# Reset DB (drop + recreate + migrate)
+psql -U postgres -c "DROP DATABASE findmyhome;"
+psql -U postgres -c "CREATE DATABASE findmyhome;"
+psql -U postgres -d findmyhome -f schema.sql
 ```
 
 ---
@@ -399,20 +362,20 @@ App\Models\Setting::commissionBlockThreshold()
 
 | Service | URL |
 |---------|-----|
-| Web App | http://localhost:3000 |
-| Admin Panel | http://localhost:3001 |
 | API Health | http://localhost:8000/api/health |
 | API v1 Base | http://localhost:8000/api/v1 |
-| Mobile (Expo) | QR code in terminal |
+| Web App | http://localhost:3000 |
+| Admin Panel | http://localhost:3001 |
+| Mobile | Scan QR in Expo Go |
 
 ---
 
 ## Ready to Deploy?
 
-Once everything works locally, follow `DEPLOY.md` to push to Railway + Vercel.
+Follow [`DEPLOY.md`](DEPLOY.md) to push to **Render + Neon + Vercel**.
 
-The only difference between local and production:
-1. Set `APP_ENV=production` and `APP_DEBUG=false`
-2. Set real API keys (Cloudinary, Africa's Talking, Resend, Pesapal, Google Vision)
-3. Set `PESAPAL_ENV=live` when ready to accept real payments
-4. Enable Railway PostgreSQL backups
+Key differences between local and production:
+1. `GIN_MODE=release` (already default in the Dockerfile)
+2. `DATABASE_URL` must include `?sslmode=require` for Neon
+3. `FRONTEND_URL` = your actual Vercel domain
+4. Set real Pesapal keys and `PESAPAL_ENV=production` when accepting live payments

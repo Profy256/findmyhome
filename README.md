@@ -1,88 +1,191 @@
-# Find My Home — Comprehensive Platform Documentation
+# Find My Home — Platform Documentation
 
-Welcome to the **Find My Home** project! This document provides a complete overview of the platform, its architecture, key features, and critical security implementations. 
+Welcome to **Find My Home** — a production-ready real-estate marketplace for Uganda.
 
-For setup and deployment instructions, please refer to the specific guides:
-- [Local Development Setup](LOCAL_SETUP.md)
-- [Docker Setup](README.docker.md)
-- [Production Deployment](DEPLOY.md)
+> Deployment guides: [Render + Neon + Vercel](DEPLOY.md) · [Docker (local)](README.docker.md)
 
 ---
 
 ## 🏗️ Architecture Overview
 
-Find My Home is a full-stack platform consisting of four main components, powered by a robust set of third-party integrations.
+Find My Home is a full-stack platform with four main components:
 
-### Core Components
-1. **Backend API (Laravel 10+)**: The central brain of the platform. Handles all business logic, database interactions, API endpoints, background workers for KYC processing, and cron jobs (schedulers).
-2. **Web Frontend (Next.js)**: The main user-facing portal where buyers can browse properties, and sellers can manage their profiles and listings.
-3. **Admin Panel (Next.js)**: A dedicated dashboard for platform administrators to manage users, manually approve KYC documents, handle disputes, and configure platform settings (e.g., commission rates).
-4. **Mobile App (React Native / Expo)**: A cross-platform mobile application providing the core browsing, chatting, and listing functionalities on the go.
+| Component | Tech | Hosts on |
+|---|---|---|
+| **Backend API** | Go 1.23 + Gin | Render (Web Service) |
+| **Web Frontend** | Next.js 14 | Vercel |
+| **Admin Panel** | Next.js 14 | Vercel |
+| **Mobile App** | React Native / Expo | Expo EAS |
+| **Database** | PostgreSQL | Neon (serverless Postgres) |
 
-### Infrastructure & Integrations
+### Infrastructure Diagram
 ```mermaid
 graph TD;
-    Web[Next.js Web - Vercel] --> API[Laravel API - Railway];
-    Admin[Next.js Admin - Vercel] --> API;
-    Mobile[React Native Mobile - Expo] --> API;
-    API --> DB[(PostgreSQL DB)];
-    API --> Worker[Railway Background Worker];
-    API --> Scheduler[Railway Schedulers];
-    API --> Cloudinary[Cloudinary: Media & KYC Docs];
-    API --> AT[Africa's Talking: SMS];
-    API --> Resend[Resend: Platform Emails];
-    API --> Firebase[Firebase FCM: Push Notifications];
-    API --> Vision[Google Vision AI: Automated KYC];
-    API --> Pesapal[Pesapal: Payments];
+    Web["Next.js Web (Vercel)"]    --> API["Go/Gin API (Render)"];
+    Admin["Next.js Admin (Vercel)"] --> API;
+    Mobile["React Native (Expo)"]   --> API;
+    API --> DB[("Neon PostgreSQL")];
+    API --> Cloudinary["Cloudinary: Photos & KYC"];
+    API --> Pesapal["Pesapal: Payments"];
 ```
 
 ---
 
-## ✨ Key Features & Business Logic
+## ✨ Key Features
 
 ### User Roles
-- **Buyer**: Can browse listings, save favorites, send enquiries, and contact sellers via WhatsApp.
-- **Individual Seller (e.g., Land Seller, Short Stay Host)**: Can list properties. Rules apply based on the category (e.g., Land listings require a title document, Short Stay requires light KYC).
-- **Company**: Registered real estate agencies. They receive a verified "Blue Badge" upon successful KYC approval.
-- **Admin**: Full control over platform operations.
+| Role | Capabilities |
+|---|---|
+| **Buyer** | Browse listings, send enquiries, WhatsApp contact, book short stays |
+| **Individual Seller** | List properties after KYC. Land listings require a title document |
+| **Company** | Registered agencies. Get a verified Blue Badge on KYC approval |
+| **Admin** | Full platform control — KYC approvals, user management, commissions |
 
 ### Core Workflows
-- **KYC (Know Your Customer)**: Sellers must verify their identity. Documents are uploaded securely and analyzed first by **Google Vision AI** for automated processing. If the AI fails or the document requires human review, an Admin can manually approve it.
-- **Commissions Enforcement**: The platform tracks lead conversions. The backend scheduler enforces commission due dates, sending reminders via Email, SMS, and Push Notifications. Users with unpaid commissions past the threshold are automatically blocked from adding new listings.
-- **Duplicate Detection**: The background worker scans new listings to prevent spam and duplicate property postings.
+
+#### KYC (Know Your Customer)
+Sellers must upload an identity document (national ID for individuals, business certificate for companies). The admin reviews and approves/rejects through the Admin Panel. On approval:
+- `kyc_status` is set to `verified`
+- Companies receive a **Blue Badge** with an expiry date
+
+#### Property Listings
+- **Land** — requires land title upload (`land_title_url`) + coordinates
+- **Apartment / House / Rental** — no title required; KYC verification sufficient
+- **Airbnb / Lodge (Short Stay)** — `listing_type = short_stay`; booking system enabled
+- All listings require at least one photo (Cloudinary URL)
+
+#### Bookings & Payments (Short Stay)
+1. Buyer books dates → booking created with `status = pending, payment_status = unpaid`
+2. Pesapal hosted payment page URL returned to client
+3. Pesapal IPN callback hits `POST /api/payments/ipn` → booking confirmed automatically
+4. A platform fee (configurable, default 7%) is charged on each booking
+
+#### Commissions
+The platform tracks property leads (enquiries + WhatsApp contacts). An admin-configurable commission is due within N days of a confirmed sale/rental. Sellers with overdue commissions past the threshold are blocked from listing.
+
+#### Leads
+- **Platform enquiry**: `POST /api/v1/properties/:id/enquire` — stored in `leads` table
+- **WhatsApp click**: `POST /api/v1/properties/:id/whatsapp` — tracked for analytics
 
 ---
 
-## 🔒 Security Summary
+## 🔒 Security
 
-Security is deeply integrated into Find My Home to protect user data, financial transactions, and highly sensitive KYC documents (passports, national IDs).
+### 1. Authentication
+- **Token-based auth** using Laravel Sanctum-compatible `personal_access_tokens` table
+- `Authorization: Bearer <id|secret>` header on all protected routes
+- SHA-256 token hash stored in DB; plain token never persisted
 
-### 1. Document & Media Security (Cloudinary)
-We use two strictly separated environments for uploads:
-- **Public Property Photos**: Uses an `unsigned` upload preset. These images are publicly accessible and safe to distribute.
-- **Sensitive KYC Documents**: Uses a **`signed`** upload preset. 
-  - The access mode is set to **Private**, meaning documents are strictly inaccessible to the public. 
-  - They can only be retrieved by the backend or authorized admins using authenticated requests.
-  - *Never change KYC upload presets to unsigned.*
+### 2. Cloudinary Upload Security
+Two strictly separate upload presets:
 
-### 2. Authentication & Authorization
-- Robust session management and token-based API authentication (utilizing Laravel's first-party auth packages).
-- Role-Based Access Control (RBAC). Admin routes and web pages are rigorously protected.
-- Never run `php artisan key:generate` on a live production server, as it invalidates all encryption keys and user sessions simultaneously.
+| Preset | Mode | Use |
+|---|---|---|
+| `findmyhome_photos` | **Unsigned** | Property photos — public URLs |
+| `findmyhome_kyc` | **Signed / Private** | KYC docs — never publicly accessible |
+
+> ⚠️ Never change the KYC preset to unsigned. National IDs and passports must remain private.
 
 ### 3. Payment Security (Pesapal)
-- Standardized IPN (Instant Payment Notification) webhooks.
-- No sensitive credit card or mobile money details are stored on Find My Home servers; everything is handled securely by Pesapal.
+- IPN webhook verified via Pesapal's own API before any booking is confirmed
+- No card/mobile-money details stored on Find My Home servers
 
-### 4. Application Level Hardening
-- **Validation**: Strict server-side validation on every incoming API request.
-- **Environment Variables**: Sensitive keys (DB passwords, API keys) are kept out of source control. Reference the `.env.example` file and Railway/Vercel environments.
-- **Rate Limiting**: API endpoints are securely rate-limited to prevent brute force and DDoS attacks. 
+### 4. CORS
+The Go API reads `FRONTEND_URL` at startup. All `https://` origins are allowed so Vercel preview deployments work out of the box; `http://localhost` is also allowed for local dev.
+
+### 5. Role-Based Access Control
+| Middleware | Guards |
+|---|---|
+| `bearerAuth()` | All `/api/v1` authed routes |
+| `verifiedSeller()` | Property write routes — requires `kyc_status = verified` |
+| `sellerActive()` | Blocks sellers with overdue commissions |
+| `adminOnly()` | All `/api/v1/admin/*` routes |
 
 ---
 
-## 🧑‍💻 Development Best Practices
+## 📁 Repository Structure
 
-- **Testing**: Ensure that `APP_ENV=local` and `APP_DEBUG=true` are ONLY used in local environments. Production must strictly use `APP_ENV=production` and `APP_DEBUG=false`.
-- **Database Migrations**: Always test migrations locally. Use `php artisan migrate:fresh --seed` to reset your local database safely.
-- **Environment Parity**: Always refer to the `.env.example` in respective repositories to ensure your local environment matches production capabilities (even when stubbed).
+```
+findmyhome/                   ← monorepo root
+├── findmyhome-go/            ← Go/Gin backend API
+│   ├── cmd/server/main.go    ← entry point
+│   ├── internal/
+│   │   ├── api/              ← HTTP handlers + router + middleware
+│   │   ├── auth/             ← Sanctum-compatible token auth
+│   │   ├── config/           ← env-based config
+│   │   ├── db/               ← pgx connection pool
+│   │   ├── model/            ← domain structs
+│   │   ├── repo/             ← shared DB query helpers
+│   │   ├── response/         ← paginator helper
+│   │   └── seller/           ← category / KYC business rules
+│   └── Dockerfile
+├── findmyhome-web/           ← Next.js web frontend
+├── findmyhome-admin/         ← Next.js admin panel
+├── findmyhome-mobile/        ← React Native / Expo mobile app
+├── docker-compose.yml        ← Local full-stack setup
+└── .env.example              ← Environment variable reference
+```
+
+---
+
+## 🧑‍💻 Development
+
+### Prerequisites
+- Go 1.23+
+- Node 18+
+- PostgreSQL 15 (or Docker)
+
+### Quick Start (Docker)
+```bash
+cp .env.example .env
+# Edit .env — set DB_PASSWORD at minimum
+docker compose up --build
+```
+
+Services:
+| URL | Service |
+|---|---|
+| `http://localhost:8000/api/health` | Go API |
+| `http://localhost:3000` | Web frontend |
+| `http://localhost:3001` | Admin panel |
+
+### Run the Go API Locally (without Docker)
+```bash
+cd findmyhome-go
+DATABASE_URL="postgres://postgres:password@localhost:5432/findmyhome?sslmode=disable" \
+FRONTEND_URL="http://localhost:3000" \
+go run ./cmd/server
+```
+
+### Build the Binary
+```bash
+cd findmyhome-go
+go build -o findmyhome-api ./cmd/server
+./findmyhome-api
+```
+
+---
+
+## 🗄️ Database Schema Key Tables
+
+| Table | Purpose |
+|---|---|
+| `users` | All roles: buyer, seller, company, admin |
+| `personal_access_tokens` | Bearer auth tokens (Sanctum-compatible) |
+| `properties` | Listings with type, price, photos, coords |
+| `leads` | Enquiry & WhatsApp lead tracking |
+| `kyc_documents` | Uploaded KYC files awaiting review |
+| `bookings` | Short-stay booking requests + payment status |
+| `commissions` | Earned platform commissions per lead conversion |
+| `ratings` | Buyer-to-seller star ratings |
+| `notifications` | In-app notification feed |
+| `password_reset_tokens` | 24 h password reset links |
+| `settings` | Admin-editable key/value config (rates, thresholds) |
+
+---
+
+## 🌍 API Base URL
+```
+https://<your-render-service>.onrender.com/api/v1/
+```
+Health check: `GET /api/health` → `{ "status": "ok", "service": "Find My Home API" }`

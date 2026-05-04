@@ -1,60 +1,82 @@
-# Find My Home — Docker Documentation
+# Find My Home — Docker Setup
 
-This project is now containerized using Docker and Docker Compose. This ensures a consistent development environment and simplifies production deployment.
+Run the full stack locally with a single command using Docker Compose.
 
 ## Prerequisites
-- Docker Desktop (Windows/Mac) or Docker Engine (Linux)
-- Docker Compose v2+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows / Mac) or Docker Engine + Compose v2 (Linux)
 
-## Getting Started
+---
 
-### 1. Environment Files
-Ensure you have the following files prepared:
-- `findmyhome/.env` (Backend)
-- `findmyhome-web/.env.local` (Web)
-- `findmyhome-admin/.env.local` (Admin)
+## Quick Start
 
-The `docker-compose.yml` uses these files for configuration. Note that `DB_HOST` should be set to `db` and `REDIS_HOST` to `redis` when running inside Docker.
-
-### 2. Launch the Stack
-Run the following command from the project root:
+### 1. Create your environment file
 ```bash
-docker compose up --build -d
+cp .env.example .env
+```
+Open `.env` and set at minimum:
+```env
+DB_PASSWORD=your_strong_password
 ```
 
-This will start:
-- **Web App**: http://localhost:3000
-- **Admin Panel**: http://localhost:3001
-- **API**: http://localhost:8000
-- **Database**: PostgreSQL on port 5432
-- **Redis**: Port 6379
-- **Worker**: Background queue processor
-- **Scheduler**: Task scheduler
-
-### 3. Initialize the Database
-On the first run, you need to run migrations and seed data:
+### 2. Launch the stack
 ```bash
-docker compose exec api php artisan migrate:fresh --seed
+docker compose up --build
 ```
 
-### 4. Common Commands
+This starts:
+| Service | URL | Container |
+|---------|-----|-----------|
+| **Go API** | http://localhost:8000 | `findmyhome-api` |
+| **Web App** | http://localhost:3000 | `findmyhome-web` |
+| **Admin Panel** | http://localhost:3001 | `findmyhome-admin` |
+| **PostgreSQL** | `localhost:5432` | `findmyhome-db` |
 
-#### View Logs
+Health check: `curl http://localhost:8000/api/health`
+
+### 3. Initialize the database
+On first run, apply your schema:
 ```bash
+docker compose exec db psql -U postgres -d findmyhome -f /schema.sql
+# Or connect and paste SQL manually:
+docker compose exec db psql -U postgres findmyhome
+```
+
+---
+
+## Common Commands
+
+```bash
+# Start in background
+docker compose up -d --build
+
+# View all logs
 docker compose logs -f
-```
 
-#### Stop the Stack
-```bash
+# View API logs only
+docker compose logs -f api
+
+# Stop everything (keep DB data)
 docker compose down
+
+# Stop and wipe the database volume
+docker compose down -v
+
+# Rebuild only the API after code changes
+docker compose up --build api
+
+# Open a shell in the API container (distroless — no shell available)
+# Use DB container instead for debugging:
+docker compose exec db psql -U postgres findmyhome
+
+# Check running containers
+docker compose ps
 ```
 
-#### Run Artisan Commands
-```bash
-docker compose exec api php artisan [command]
-```
+---
 
 ## Production Notes
-- The Dockerfiles are multi-stage and optimized for production.
-- For production, ensure `APP_ENV=production` and `APP_DEBUG=false`.
-- The `web` service uses the `standalone` output mode of Next.js for minimal image size.
+
+- The Go API Dockerfile uses a **multi-stage build**: Go 1.23 alpine builder → distroless static runtime.
+- The resulting image is ~20 MB with no shell or OS packages.
+- For production, deploy to Render (not Docker Compose). See [`DEPLOY.md`](DEPLOY.md).
+- Set `GIN_MODE=release` in production (already the default in `docker-compose.yml`).

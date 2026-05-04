@@ -29,6 +29,7 @@ export function AdminUsersPage() {
     setLoading(true)
     adminApi.users({ page: p, search: search || undefined, role: role || undefined })
       .then(r => { setUsers(r.data.data); setMeta(r.data.meta ?? r.data) })
+      .catch(e => toast.error(e.response?.data?.message ?? 'Failed to load users.'))
       .finally(() => setLoading(false))
   }
 
@@ -283,6 +284,7 @@ export function AdminPropertiesPage() {
     setLoading(true)
     adminApi.listProperties({ page: p, search: search || undefined, type: type || undefined })
       .then(r => { setProps(r.data.data); setMeta(r.data.meta ?? r.data) })
+      .catch(e => toast.error(e.response?.data?.message ?? 'Failed to load properties.'))
       .finally(() => setLoading(false))
   }
 
@@ -459,6 +461,7 @@ export function AdminCommissionsPage() {
     setLoading(true)
     adminApi.listCommissions({ page: p, status: status || undefined })
       .then(r => { setCommissions(r.data.data); setMeta(r.data.meta ?? r.data) })
+      .catch(e => toast.error(e.response?.data?.message ?? 'Failed to load commissions.'))
       .finally(() => setLoading(false))
   }
 
@@ -596,6 +599,7 @@ export function AdminRatingsPage() {
     setLoading(true)
     adminApi.listRatings({ page: p })
       .then(r => { setRatings(r.data.data); setMeta(r.data.meta ?? r.data) })
+      .catch(e => toast.error(e.response?.data?.message ?? 'Failed to load ratings.'))
       .finally(() => setLoading(false))
   }
 
@@ -711,6 +715,7 @@ export function AdminLeadsPage() {
     setLoading(true)
     adminApi.listLeads({ page: p, method: type || undefined })
       .then(r => { setLeads(r.data.data); setMeta(r.data.meta ?? r.data) })
+      .catch(e => toast.error(e.response?.data?.message ?? 'Failed to load leads.'))
       .finally(() => setLoading(false))
   }
 

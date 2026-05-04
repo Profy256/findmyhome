@@ -12,7 +12,6 @@
 
 # Common global ignores
 node_modules/
-vendor/
 .next/
 **/.next/
 .turbo/
@@ -28,7 +27,16 @@ yarn-error.log*
 .idea/
 .vscode/
 
-# Build logs and output texts
+# Go build artifacts
+findmyhome-go/findmyhome-api
+findmyhome-go/server
+findmyhome-go/*.exe
+*.exe
+
+# Go test cache (local only)
+findmyhome-go/tmp/
+
+# Build logs and output
 *.log
 *_log*.txt
 *_out.txt
