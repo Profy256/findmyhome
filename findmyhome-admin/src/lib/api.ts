@@ -4,7 +4,7 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: API_URL.endsWith('/v1') ? API_URL : API_URL + '/v1',
+  baseURL: API_URL.endsWith('/api/v1') ? API_URL : (API_URL.endsWith('/') ? API_URL + 'api/v1' : API_URL + '/api/v1'),
   headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
 })
 

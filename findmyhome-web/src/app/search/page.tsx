@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Navbar } from '@/components/layout/Navbar'
 import { PropertyCard } from '@/components/properties/PropertyCard'
@@ -12,7 +12,7 @@ const BUY_PRESETS   = [{ l:'Any', v:'' },{ l:'<50M', v:'0-50000000' },{ l:'50–
 const PROP_TYPES    = ['All','House','Airbnb','Lodge','Rental','Apartment','Land']
 const LISTING_TYPES = ['All','Sale','Rent']
 
-export default function SearchPage() {
+function SearchContent() {
   const params = useSearchParams()
 
   const [properties, setProperties]     = useState<any[]>([])
@@ -261,5 +261,13 @@ export default function SearchPage() {
         </main>
       </div>
     </>
+  )
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-paper flex items-center justify-center text-stone">Loading search...</div>}>
+      <SearchContent />
+    </Suspense>
   )
 }

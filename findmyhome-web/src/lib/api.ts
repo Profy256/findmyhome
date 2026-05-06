@@ -4,7 +4,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: API_URL.endsWith('/v1') ? API_URL : API_URL + '/v1',
+  baseURL: API_URL.endsWith('/api/v1') ? API_URL : (API_URL.endsWith('/') ? API_URL + 'api/v1' : API_URL + '/api/v1'),
   headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
 })
 
@@ -128,4 +128,5 @@ export interface LoginData { email: string; password: string; }
 export interface PropertyFilters {
   location?: string; type?: string; listing?: string; min_price?: number;
   max_price?: number; bedrooms?: number; blue_badge_only?: boolean; page?: number;
+  seller_id?: string;
 }

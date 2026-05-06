@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Jost } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import { Providers } from '@/components/layout/Providers'
+import { Analytics } from '@vercel/analytics/react'
 
 const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
@@ -24,6 +25,17 @@ export const metadata: Metadata = {
     title: 'Find My Home Uganda',
     description: 'Search verified properties across Uganda',
     type: 'website',
+    url: 'https://your-app.vercel.app',
+    images: [{ url: 'https://your-app.vercel.app/og-image.jpg', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Find My Home Uganda',
+    description: 'Search verified properties across Uganda',
+    images: ['https://your-app.vercel.app/og-image.jpg'],
+  },
+  alternates: {
+    canonical: 'https://your-app.vercel.app',
   },
 }
 
@@ -40,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               success: { iconTheme: { primary: '#2d4a3e', secondary: '#fff' } },
             }}
           />
+          <Analytics />
         </Providers>
       </body>
     </html>

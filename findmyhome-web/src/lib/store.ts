@@ -6,7 +6,7 @@ interface User {
   role: 'buyer' | 'seller' | 'company' | 'admin';
   kyc_status: string; blue_badge: boolean; average_rating: number;
   total_reviews: number; company_name?: string; booking_enabled?: boolean;
-  free_featured_slots?: number;
+  free_featured_slots?: number; seller_categories?: string[];
 }
 
 interface AuthState {

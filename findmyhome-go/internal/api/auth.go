@@ -62,7 +62,7 @@ func (s *Server) register(c *gin.Context) {
 		errs["password"] = []string{"The password must be at least 8 characters."}
 	}
 	switch body.Role {
-	case "buyer", "seller", "company", "admin":
+	case "buyer", "seller", "company":
 	default:
 		errs["role"] = []string{"The selected role is invalid."}
 	}

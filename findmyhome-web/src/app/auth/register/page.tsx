@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
@@ -21,7 +21,7 @@ const CATEGORIES = [
 
 const THRESHOLD: Record<string,number> = { land: 95, apartment: 90, house: 90, rental: 80, airbnb: 80, lodge: 80 }
 
-export default function RegisterPage() {
+function RegisterContent() {
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm()
   const [showPw, setShowPw]         = useState(false)
   const [role, setRole]             = useState('buyer')
@@ -35,7 +35,7 @@ export default function RegisterPage() {
   const params     = useSearchParams()
 
   const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-  const PRESET= process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+  const PRESET= process.env.NEXT_PUBLIC_CLOUDINARY_KYC_PRESET
 
   useEffect(() => {
     const r = params.get('role')
@@ -289,5 +289,13 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-paper flex items-center justify-center text-stone">Loading...</div>}>
+      <RegisterContent />
+    </Suspense>
   )
 }

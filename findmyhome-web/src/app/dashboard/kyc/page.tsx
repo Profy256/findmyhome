@@ -28,7 +28,7 @@ export default function KycPage() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-  const PRESET= process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+  const PRESET= process.env.NEXT_PUBLIC_CLOUDINARY_KYC_PRESET
 
   const fetchStatus = async () => {
     const res = await kycApi.status()

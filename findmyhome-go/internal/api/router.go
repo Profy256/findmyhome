@@ -10,16 +10,20 @@ import (
 func (s *Server) corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		allowed := s.Cfg.FrontendURL
 
-		// Allow any explicitly configured frontend origin OR localhost origins in dev
+		allowed := false
 		if origin != "" {
-			if strings.EqualFold(origin, allowed) ||
-				strings.HasPrefix(origin, "http://localhost") ||
-				strings.HasPrefix(origin, "http://127.0.0.1") ||
-				strings.HasPrefix(origin, "https://") {
-				c.Header("Access-Control-Allow-Origin", origin)
+			switch {
+			case strings.EqualFold(origin, s.Cfg.FrontendURL),
+				strings.EqualFold(origin, s.Cfg.AdminURL),
+				strings.HasPrefix(origin, "http://localhost"),
+				strings.HasPrefix(origin, "http://127.0.0.1"):
+				allowed = true
 			}
+		}
+
+		if allowed {
+			c.Header("Access-Control-Allow-Origin", origin)
 		}
 
 		c.Header("Access-Control-Allow-Credentials", "true")

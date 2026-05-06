@@ -123,6 +123,7 @@ func (s *Server) propertiesIndex(c *gin.Context) {
 	}
 
 	path := strings.TrimSuffix(c.Request.URL.Path, "/")
+	c.Header("Cache-Control", "public, max-age=60, stale-while-revalidate=300")
 	c.JSON(http.StatusOK, response.Paginator(path, page, perPage, total, out))
 }
 
@@ -199,21 +200,21 @@ func formatCoord(v any) string {
 
 func trustLabel(propertyType, sellerRole string, landTitle any) string {
 	if sellerRole == "company" {
-		return "Registered Business Ã¢Å“â€"
+		return "Registered Business ✓"
 	}
 	if propertyType == "land" {
 		switch t := landTitle.(type) {
 		case string:
 			if strings.TrimSpace(t) != "" {
-				return "Land Title Uploaded Ã¢Å“â€"
+				return "Land Title Uploaded ✓"
 			}
 		case *string:
 			if t != nil && strings.TrimSpace(*t) != "" {
-				return "Land Title Uploaded Ã¢Å“â€"
+				return "Land Title Uploaded ✓"
 			}
 		}
 	}
-	return "Identity Verified Ã¢Å“â€"
+	return "Identity Verified ✓"
 }
 
 func categoryInfo(propertyType string) map[string]any {
