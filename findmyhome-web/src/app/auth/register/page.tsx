@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
@@ -29,7 +29,6 @@ function RegisterContent() {
   const [file, setFile]             = useState<File | null>(null)
   const [termsAgreed, setTermsAgreed] = useState(false)
   const [uploading, setUploading]   = useState(false)
-  const fileRef                     = useRef<HTMLInputElement>(null)
   const { setAuth } = useAuthStore()
   const router     = useRouter()
   const params     = useSearchParams()
@@ -77,7 +76,7 @@ function RegisterContent() {
         form.append('upload_preset', PRESET ?? 'findmyhome_kyc')
         form.append('folder', 'kyc')
 
-        const cldRes = await axios.post(`https://api.cloudinary.com/v1_1/${CLOUD}/raw/upload`, form)
+        const cldRes = await axios.post(`https://api.cloudinary.com/v1_1/${CLOUD}/auto/upload`, form)
         file_url = cldRes.data.secure_url
         cloudinary_public_id = cldRes.data.public_id
       }
@@ -185,18 +184,17 @@ function RegisterContent() {
                   : 'Upload a clear photo of your National ID or Passport for instant verification.'}
               </p>
               
-              <input ref={fileRef} type="file" accept="image/*,.pdf" className="hidden" 
-                     onChange={(e) => setFile(e.target.files?.[0] || null)} />
-                     
-              <button type="button" onClick={() => fileRef.current?.click()}
-                className={cn('w-full border-2 border-dashed rounded-xl py-6 flex flex-col items-center gap-2 transition-all',
-                   file ? 'border-green-400 bg-green-50' : 'border-sand hover:border-ink cursor-pointer')}>
+              <label htmlFor="kyc-file-input"
+                className={cn('w-full border-2 border-dashed rounded-xl py-6 flex flex-col items-center gap-2 transition-all cursor-pointer',
+                   file ? 'border-green-400 bg-green-50' : 'border-sand hover:border-ink')}>
+                <input id="kyc-file-input" type="file" accept="image/*,.pdf" className="sr-only"
+                       onChange={(e) => setFile(e.target.files?.[0] || null)} />
                 <Upload className={cn("w-6 h-6", file ? 'text-green-600' : 'text-dust')} />
                 <span className={cn("text-xs font-medium", file ? 'text-green-700' : 'text-stone')}>
-                  {file ? file.name : 'Click to select file'}
+                  {file ? file.name : 'Tap to select file'}
                 </span>
                 <span className="text-[10px] text-dust">JPG, PNG, or PDF — max 10MB</span>
-              </button>
+              </label>
             </div>
           )}
 

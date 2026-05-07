@@ -102,7 +102,7 @@ export default function KycPage() {
           <Clock className="w-5 h-5 text-amber-600 flex-shrink-0" />
           <div>
             <p className="text-sm font-semibold text-amber-700">Verification in Progress</p>
-            <p className="text-xs text-stone">Our AI is reviewing your document. You will be notified within minutes.</p>
+            <p className="text-xs text-stone">Your document is being reviewed. Most verifications complete within minutes, but some may take up to 24 hours.</p>
           </div>
         </div>
       ) : (

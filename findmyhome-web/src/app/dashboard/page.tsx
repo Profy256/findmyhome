@@ -50,7 +50,7 @@ export default function DashboardPage() {
               {kycStatus === 'pending' ? 'Verification in progress' : kycStatus === 'none' ? 'Verify your identity to start listing' : 'Verification failed — please resubmit'}
             </p>
             <p className="text-xs text-stone">
-              {kycStatus === 'pending' ? 'Our AI is reviewing your document. You will be notified within minutes.' : 'Upload your National ID or Passport to get verified and list properties.'}
+              {kycStatus === 'pending' ? 'Your document is being reviewed. Most verifications complete within minutes, but some may take up to 24 hours.' : 'Upload your National ID or Passport to get verified and list properties.'}
             </p>
             {kycStatus !== 'pending' && (
               <Link href="/dashboard/kyc" className="text-xs font-semibold text-ink underline mt-1.5 inline-block">

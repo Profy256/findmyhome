@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#1c1c1a"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "ug.findmyhome.app",
@@ -27,11 +29,12 @@
       },
       "package": "ug.findmyhome.app",
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.RECORD_AUDIO"
       ],
       "googleServicesFile": "./google-services.json"
     },
@@ -51,10 +54,23 @@
       ],
       [
         "expo-image-picker",
-        { "photosPermission": "Allow Find My Home to access your photos." }
+        {
+          "photosPermission": "Allow Find My Home to access your photos."
+        }
       ]
     ],
     "scheme": "findmyhome",
-    "experiments": { "typedRoutes": true }
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "6799d425-b641-4dd1-a3f4-e0211a37b6ed"
+      }
+    },
+    "owner": "profy256"
   }
 }
