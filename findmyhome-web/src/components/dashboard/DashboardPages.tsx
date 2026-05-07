@@ -248,7 +248,7 @@ export function CommissionsPage() {
             <p className="text-sm font-semibold text-red-700">Outstanding commissions: {formatUGX(totalOwed)}</p>
             <p className="text-xs text-red-600 mt-1">
               Your account will be suspended after 3 overdue commission payments.
-              Contact <a href="mailto:support@findmyhome.ug" className="underline">support@findmyhome.ug</a> to arrange payment.
+              Contact <a href="mailto:support@findmyhomeuganda.com" className="underline">support@findmyhomeuganda.com</a> to arrange payment.
             </p>
           </div>
         </div>

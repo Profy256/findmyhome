@@ -12,12 +12,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('Failed to fetch properties for sitemap', e)
   }
 
+  const base = 'https://findmyhomeuganda.com'
+
   return [
-    { url: 'https://your-app.vercel.app', lastModified: new Date() },
-    { url: 'https://your-app.vercel.app/search', lastModified: new Date() },
+    { url: base, lastModified: new Date(), changeFrequency: 'daily' as const, priority: 1 },
+    { url: `${base}/search`, lastModified: new Date(), changeFrequency: 'daily' as const, priority: 0.8 },
     ...properties.map((p: any) => ({
-      url: `https://your-app.vercel.app/properties/${p.id}`,
+      url: `${base}/properties/${p.id}`,
       lastModified: p.updated_at ? new Date(p.updated_at) : new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
     })),
   ]
 }

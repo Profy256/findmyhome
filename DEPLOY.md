@@ -2,6 +2,8 @@
 
 Stack: **Go/Gin API → Render** · **PostgreSQL → Neon** · **Frontends → Vercel**
 
+> For mobile deployment (Android / iOS / EAS / Play Store / App Store) see [MOBILE.md](MOBILE.md).
+
 ---
 
 ## Overview
@@ -35,6 +37,11 @@ git push -u origin main
 cd ../findmyhome-admin
 git init && git add . && git commit -m "feat: admin panel"
 git remote add origin https://github.com/YOUR_USERNAME/findmyhome-admin.git
+git push -u origin main
+
+cd ../findmyhome-mobile
+git init && git add . && git commit -m "feat: mobile app"
+git remote add origin https://github.com/YOUR_USERNAME/findmyhome-mobile.git
 git push -u origin main
 ```
 
@@ -174,11 +181,11 @@ NEXT_PUBLIC_API_URL=https://findmyhome-api.onrender.com/api/v1
 
 ### API
 - Render Dashboard → Your Service → **Settings → Custom Domains**
-- Add `api.findmyhome.ug` → update your DNS CNAME
+- Add `api.findmyhomeuganda.com` → update your DNS CNAME
 
 ### Frontends
 - Vercel Dashboard → Project → **Settings → Domains**
-- Add `findmyhome.ug` and `admin.findmyhome.ug`
+- Add `findmyhomeuganda.com` and `admin.findmyhomeuganda.com`
 
 After adding custom domains, update:
 - `FRONTEND_URL` on Render → your production domain
@@ -217,6 +224,8 @@ pg_dump "postgres://..." --no-acl --no-owner -F c -f backup-$(date +%Y%m%d).dump
 - [ ] Verify CORS — web frontend can call API without errors
 - [ ] Check Render logs for any startup errors
 
+> For mobile pre-launch checks see [MOBILE.md](MOBILE.md).
+
 ---
 
 ## Environment Variables Reference
@@ -248,7 +257,7 @@ pg_dump "postgres://..." --no-acl --no-owner -F c -f backup-$(date +%Y%m%d).dump
 
 | Role | Email | Password |
 |---|---|---|
-| Admin | admin@findmyhome.ug | Admin@2024! |
+| Admin | admin@findmyhomeuganda.com | Admin@2024! |
 | Company | info@primeestates.ug | Seller@2024! |
 | Land Seller | grace.namukasa@gmail.com | Seller@2024! |
 | Short Stay Host | kevin.ochieng@gmail.com | Seller@2024! |

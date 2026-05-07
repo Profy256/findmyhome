@@ -264,7 +264,7 @@ curl http://localhost:8000/api/v1/properties | jq .
 
 ### Test 5 — Admin panel
 1. Open http://localhost:3001
-2. Login as `admin@findmyhome.ug` / `Admin@2024!`
+2. Login as `admin@findmyhomeuganda.com` / `Admin@2024!`
 3. Go to **KYC** → approve a pending document
 4. Go to **Settings** → adjust commission rate
 

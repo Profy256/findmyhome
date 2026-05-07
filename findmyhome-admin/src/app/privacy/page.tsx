@@ -33,7 +33,7 @@ export default function PrivacyPage() {
           <h2>5. Your Rights</h2>
           <p>
             You may request access to, correction of, or deletion of your personal data at any time by emailing
-            support@findmyhome.ug. We will respond within 14 days.
+            support@findmyhomeuganda.com. We will respond within 14 days.
           </p>
 
           <h2>6. Data Retention</h2>

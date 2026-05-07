@@ -68,7 +68,7 @@ func Load() Config {
 
 		// Resend / Email
 		ResendKey:       getenv("RESEND_KEY", ""),
-		MailFromAddress: getenv("MAIL_FROM_ADDRESS", "hello@findmyhome.com"),
+		MailFromAddress: getenv("MAIL_FROM_ADDRESS", "hello@findmyhomeuganda.com"),
 		MailFromName:    getenv("MAIL_FROM_NAME", "Find My Home"),
 
 		// Africa's Talking

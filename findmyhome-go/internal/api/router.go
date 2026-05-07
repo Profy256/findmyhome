@@ -8,14 +8,27 @@ import (
 )
 
 func (s *Server) corsMiddleware() gin.HandlerFunc {
+	// Build a set of allowed origins from comma-separated FRONTEND_URL and ADMIN_URL.
+	// Entries without a scheme get https:// prepended automatically.
+	allowedOrigins := map[string]bool{}
+	for _, raw := range strings.Split(s.Cfg.FrontendURL+","+s.Cfg.AdminURL, ",") {
+		o := strings.TrimSpace(raw)
+		if o == "" {
+			continue
+		}
+		if !strings.HasPrefix(o, "http://") && !strings.HasPrefix(o, "https://") {
+			o = "https://" + o
+		}
+		allowedOrigins[strings.ToLower(o)] = true
+	}
+
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
 
 		allowed := false
 		if origin != "" {
 			switch {
-			case strings.EqualFold(origin, s.Cfg.FrontendURL),
-				strings.EqualFold(origin, s.Cfg.AdminURL),
+			case allowedOrigins[strings.ToLower(origin)],
 				strings.HasPrefix(origin, "http://localhost"),
 				strings.HasPrefix(origin, "http://127.0.0.1"):
 				allowed = true

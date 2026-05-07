@@ -99,7 +99,7 @@ export default function DashboardScreen() {
           { emoji: '📋', label: 'My Listings',   route: '/dashboard/listings' },
           { emoji: '📩', label: 'Leads',         route: '/dashboard/leads' },
           { emoji: '📅', label: 'Bookings',      route: '/dashboard/bookings' },
-          { emoji: '💰', label: 'Commissions',   route: '/dashboard/commissions' },
+          { emoji: '🧾', label: 'Invoices',       route: '/dashboard/commissions' },
           { emoji: '🪪', label: 'KYC',           route: '/dashboard/kyc' },
         ].map(a => (
           <TouchableOpacity key={a.label} onPress={() => router.push(a.route as any)} activeOpacity={0.8}

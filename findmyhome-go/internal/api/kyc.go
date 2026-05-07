@@ -1,12 +1,17 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
+	"findmyhome/backend/internal/vision"
 )
 
 func kycRequirements(role string) map[string]any {
@@ -141,6 +146,12 @@ func (s *Server) kycUpload(c *gin.Context) {
 		_, _ = s.Pool.Exec(c.Request.Context(), `UPDATE users SET kyc_status='pending', updated_at=NOW() WHERE id=$1`, u.ID)
 	}
 
+	// Trigger Google Vision AI auto-verification in the background if configured.
+	if s.Cfg.GoogleVisionAPIKey != "" {
+		docID, _ := uuid.Parse(did)
+		go s.autoVerifyKYC(docID, u.ID, body.DocumentType, strings.TrimSpace(body.FileURL))
+	}
+
 	next := "Your document will be automatically reviewed. Most verifications complete within a few minutes."
 	if u.Role == "company" {
 		next = "Your business document will be automatically reviewed. Activation takes just a few minutes."
@@ -153,6 +164,53 @@ func (s *Server) kycUpload(c *gin.Context) {
 		},
 		"what_happens_next": next,
 	})
+}
+
+const autoApproveThreshold = 80
+
+func (s *Server) autoVerifyKYC(docID, userID uuid.UUID, docType, imageURL string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	defer cancel()
+
+	client := vision.New(s.Cfg.GoogleVisionAPIKey)
+	score, err := client.AnalyzeDocument(ctx, imageURL, docType)
+	if err != nil {
+		slog.Warn("vision: analysis failed, leaving for admin review",
+			slog.String("doc", docID.String()), slog.Any("err", err))
+		return
+	}
+
+	_, _ = s.Pool.Exec(ctx,
+		`UPDATE kyc_documents SET ai_confidence_score=$2, updated_at=NOW() WHERE id=$1`,
+		docID, score)
+
+	if score < autoApproveThreshold {
+		slog.Info("vision: low confidence, pending admin review",
+			slog.String("doc", docID.String()), slog.Int("score", score))
+		return
+	}
+
+	// Auto-approve: update document and user status atomically.
+	tx, err := s.Pool.Begin(ctx)
+	if err != nil {
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	tag, err := tx.Exec(ctx,
+		`UPDATE kyc_documents SET status='verified', reviewed_at=NOW(), updated_at=NOW()
+		 WHERE id=$1 AND status='pending'`,
+		docID)
+	if err != nil || tag.RowsAffected() == 0 {
+		return
+	}
+	_, _ = tx.Exec(ctx,
+		`UPDATE users SET kyc_status='verified', updated_at=NOW() WHERE id=$1`,
+		userID)
+	_ = tx.Commit(ctx)
+
+	slog.Info("vision: KYC auto-approved",
+		slog.String("doc", docID.String()), slog.Int("score", score))
 }
 
 func (s *Server) kycDocuments(c *gin.Context) {

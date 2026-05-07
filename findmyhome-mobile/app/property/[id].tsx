@@ -72,6 +72,7 @@ export default function PropertyDetailScreen() {
   )
 
   const isShortStay = property.listing_type === 'short_stay' || property.property_type === 'airbnb' || property.property_type === 'lodge'
+  const WEB_URL     = (process.env.EXPO_PUBLIC_WEB_URL ?? 'https://findmyhomeuganda.com').replace(/\/$/, '')
   const mapsUrl = property.has_map_location ? `https://maps.google.com/?q=${property.land_title_lat},${property.land_title_lng}` : null
 
   return (
@@ -237,11 +238,13 @@ export default function PropertyDetailScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Book button for short stay */}
+        {/* Short-stay: open the web app to complete the reservation */}
         {isShortStay && property.seller?.booking_enabled && (
-          <TouchableOpacity onPress={() => router.push(`/dashboard/bookings?property_id=${id}` as any)} activeOpacity={0.8}
+          <TouchableOpacity
+            onPress={() => Linking.openURL(`${WEB_URL}/properties/${id}`)}
+            activeOpacity={0.8}
             style={{ backgroundColor: C.gold, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8 }}>
-            <Text style={{ color: C.white, fontWeight: '700', fontSize: 13 }}>📅 Book This Property</Text>
+            <Text style={{ color: C.white, fontWeight: '700', fontSize: 13 }}>🌐 Continue on Website</Text>
           </TouchableOpacity>
         )}
       </View>

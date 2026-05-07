@@ -13,6 +13,7 @@ import (
 	"findmyhome/backend/internal/api"
 	"findmyhome/backend/internal/config"
 	"findmyhome/backend/internal/db"
+	dbschema "findmyhome/backend/db"
 )
 
 func main() {
@@ -29,6 +30,12 @@ func main() {
 		os.Exit(1)
 	}
 	defer pool.Close()
+
+	if _, err := pool.Exec(ctx, dbschema.SQL); err != nil {
+		slog.Error("migrate", slog.Any("err", err))
+		os.Exit(1)
+	}
+	slog.Info("schema ready")
 
 	srv := api.Server{
 		Cfg:  cfg,

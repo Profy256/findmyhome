@@ -8,6 +8,8 @@ import { Loading, Empty, StatCard, Badge, Card, Divider } from '@/components/ui'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Toast from 'react-native-toast-message'
 
+const WEB_URL = (process.env.EXPO_PUBLIC_WEB_URL ?? 'https://findmyhomeuganda.com').replace(/\/$/, '')
+
 function ScreenHeader({ title, label, onBack }: { title: string; label?: string; onBack?: () => void }) {
   const insets = useSafeAreaInsets()
   return (
@@ -162,22 +164,30 @@ export function CommissionsScreen() {
       .finally(() => setLoading(false))
   }, [])
 
-  const totalOwed = data.filter((t: any) => t.commission && ['pending','reminded','overdue'].includes(t.commission?.status)).reduce((s: number, t: any) => s + (t.commission?.commission_amount ?? 0), 0)
+  const hasUnpaid = data.some((t: any) => t.commission && ['pending','reminded','overdue'].includes(t.commission?.status))
 
   return (
     <View style={{ flex: 1, backgroundColor: C.paper }}>
-      <ScreenHeader title="Commissions" label="Finance" onBack={() => router.back()} />
-      {totalOwed > 0 && (
-        <View style={{ margin: 16, backgroundColor: '#fff5f5', borderRadius: 14, padding: 14, flexDirection: 'row', gap: 10 }}>
+      <ScreenHeader title="Invoices" label="Billing" onBack={() => router.back()} />
+
+      {/* Redirect unpaid invoices to web */}
+      {hasUnpaid && (
+        <TouchableOpacity
+          onPress={() => Linking.openURL(`${WEB_URL}/dashboard/commissions`)}
+          style={{ margin: 16, backgroundColor: '#fff5f5', borderRadius: 14, padding: 14, flexDirection: 'row', gap: 10, alignItems: 'center' }}>
           <Text style={{ fontSize: 18 }}>⚠️</Text>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: C.red }}>Outstanding: {formatUGX(totalOwed)}</Text>
-            <Text style={{ fontSize: 11, color: '#c53030', marginTop: 3, lineHeight: 16 }}>Account suspended after 3 overdue payments. Contact support@findmyhome.ug</Text>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: C.red }}>You have outstanding invoices</Text>
+            <Text style={{ fontSize: 11, color: '#c53030', marginTop: 3, lineHeight: 16 }}>
+              Tap to settle on the website. Contact support@findmyhomeuganda.com for help.
+            </Text>
           </View>
-        </View>
+          <Text style={{ color: C.red, fontSize: 18 }}>›</Text>
+        </TouchableOpacity>
       )}
+
       {loading ? <Loading /> : !data.filter((t: any) => t.commission).length ? (
-        <Empty emoji="💰" title="No commissions yet" description="Commission invoices appear after confirmed sales." />
+        <Empty emoji="🧾" title="No invoices yet" description="Service fee invoices appear here after confirmed sales." />
       ) : (
         <FlatList data={data.filter((t: any) => t.commission)} keyExtractor={(i: any) => i.id} contentContainerStyle={{ padding: 16 }}
           renderItem={({ item: t }: { item: any }) => {
@@ -193,14 +203,23 @@ export function CommissionsScreen() {
                     <Text style={{ fontSize: 14, fontWeight: '500', color: C.ink }}>{formatUGX(t.agreed_price)}</Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={{ fontSize: 11, color: C.dust }}>Commission</Text>
+                    <Text style={{ fontSize: 11, color: C.dust }}>Service Fee</Text>
                     <Text style={{ fontSize: 14, fontWeight: '600', color: c.is_overdue ? C.red : C.ink }}>{formatUGX(c.commission_amount)}</Text>
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-                  <Text style={{ fontSize: 11, color: c.is_overdue ? C.red : C.stone }}>Due: {c.due_date}{c.is_overdue ? ` (${c.days_overdue}d overdue)` : ''}</Text>
+                  <Text style={{ fontSize: 11, color: c.is_overdue ? C.red : C.stone }}>
+                    Due: {c.due_date}{c.is_overdue ? ` (${c.days_overdue}d overdue)` : ''}
+                  </Text>
                   <Badge label={c.status} color={c.status==='paid'?'green':c.status==='overdue'?'red':c.status==='reminded'?'amber':'grey'} />
                 </View>
+                {['pending','reminded','overdue'].includes(c.status) && (
+                  <TouchableOpacity
+                    onPress={() => Linking.openURL(`${WEB_URL}/dashboard/commissions`)}
+                    style={{ marginTop: 10, backgroundColor: C.ink, borderRadius: 8, paddingVertical: 9, alignItems: 'center' }}>
+                    <Text style={{ color: C.white, fontWeight: '600', fontSize: 12 }}>Settle on Website →</Text>
+                  </TouchableOpacity>
+                )}
               </Card>
             )
           }}
