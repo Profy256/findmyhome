@@ -36,8 +36,8 @@ export default function NewListingPage() {
 
   const photoRef = useRef<HTMLInputElement>(null)
   const titleRef = useRef<HTMLInputElement>(null)
-  const CLOUD    = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-  const PRESET   = process.env.NEXT_PUBLIC_CLOUDINARY_LISTINGS_PRESET ?? 'findmyhome_listings'
+  const CLOUD    = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dtwtwdcw2'
+  const PRESET   = process.env.NEXT_PUBLIC_CLOUDINARY_LISTINGS_PRESET || 'PHOTOS'
 
   const typeInfo = PROPERTY_TYPES[type]
 

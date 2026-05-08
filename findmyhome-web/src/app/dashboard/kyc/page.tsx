@@ -27,8 +27,8 @@ export default function KycPage() {
   const [loading,   setLoading]  = useState(true)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-  const PRESET= process.env.NEXT_PUBLIC_CLOUDINARY_KYC_PRESET
+  const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dtwtwdcw2'
+  const PRESET= process.env.NEXT_PUBLIC_CLOUDINARY_KYC_PRESET || 'findmyhome-kyc'
 
   const fetchStatus = async () => {
     const res = await kycApi.status()

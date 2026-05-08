@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Cormorant_Garamond, Jost } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
@@ -17,10 +17,23 @@ const jost = Jost({
   variable: '--font-jost',
 })
 
+export const viewport: Viewport = {
+  themeColor: '#1c1917',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+}
+
 export const metadata: Metadata = {
   title: 'Find My Home — Uganda Real Estate',
   description: "Uganda's most trusted real estate marketplace. Verified sellers, genuine listings, zero scams.",
   keywords: 'property Uganda, houses for sale Kampala, land Uganda, apartments Kampala',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'FindMyHome',
+  },
   openGraph: {
     title: 'Find My Home Uganda',
     description: 'Search verified properties across Uganda',

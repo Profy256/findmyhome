@@ -33,8 +33,8 @@ function RegisterContent() {
   const router     = useRouter()
   const params     = useSearchParams()
 
-  const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-  const PRESET= process.env.NEXT_PUBLIC_CLOUDINARY_KYC_PRESET
+  const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dtwtwdcw2'
+  const PRESET= process.env.NEXT_PUBLIC_CLOUDINARY_KYC_PRESET || 'findmyhome-kyc'
 
   useEffect(() => {
     const r = params.get('role')
@@ -73,10 +73,16 @@ function RegisterContent() {
 
         const form = new FormData()
         form.append('file', file)
-        form.append('upload_preset', PRESET ?? 'findmyhome_kyc')
-        form.append('folder', 'kyc')
+        form.append('upload_preset', PRESET)
 
-        const cldRes = await axios.post(`https://api.cloudinary.com/v1_1/${CLOUD}/auto/upload`, form)
+        let cldRes: any
+        try {
+          cldRes = await axios.post(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`, form)
+        } catch (cldErr: any) {
+          const raw = cldErr.response?.data
+          const msg = raw?.error?.message ?? raw?.message ?? JSON.stringify(raw) ?? cldErr.message ?? 'Document upload failed.'
+          throw new Error('Upload error: ' + msg)
+        }
         file_url = cldRes.data.secure_url
         cloudinary_public_id = cldRes.data.public_id
       }
