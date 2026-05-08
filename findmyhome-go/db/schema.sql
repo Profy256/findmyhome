@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS properties (
     title                    TEXT        NOT NULL,
     description              TEXT        NOT NULL,
     price                    BIGINT      NOT NULL,
+    price_period             TEXT,
     location                 TEXT        NOT NULL,
     district                 TEXT,
     property_type            TEXT        NOT NULL,

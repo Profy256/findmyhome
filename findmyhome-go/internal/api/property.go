@@ -132,7 +132,7 @@ func propertySelectCols() []string {
 		"p.id", "p.seller_id", "p.title", "p.description", "p.price", "p.location", "p.district",
 		"p.property_type::text", "p.listing_type::text",
 		"p.bedrooms", "p.bathrooms", "p.size", "p.photos", "p.amenities",
-		"p.max_guests", "p.price_per_night",
+		"p.max_guests", "p.price_per_night", "p.price_period",
 		"p.status::text", "p.featured", "p.featured_until",
 		"p.land_title_url", "p.land_title_cloudinary_id", "p.land_title_lat", "p.land_title_lng", "p.land_title_verified",
 		"p.created_at", "p.updated_at",
@@ -242,6 +242,7 @@ func scanPropertyWithSeller(row pgx.Row) (map[string]any, *model.User, error) {
 		photos, am   []byte
 		maxGuests    *int32
 		ppn          *float64
+		pricePeriod  *string
 		status       string
 		featured     bool
 		featUntil    *time.Time
@@ -269,7 +270,7 @@ func scanPropertyWithSeller(row pgx.Row) (map[string]any, *model.User, error) {
 		&title, &desc, &price, &location, &district,
 		&ptype, &ltype,
 		&bed, &bath, &size, &photos, &am,
-		&maxGuests, &ppn,
+		&maxGuests, &ppn, &pricePeriod,
 		&status, &featured, &featUntil,
 		&landURL, &landCID, &landLat, &landLng, &landVer,
 		&pCreated, &pUpdated,
@@ -307,6 +308,7 @@ func scanPropertyWithSeller(row pgx.Row) (map[string]any, *model.User, error) {
 		"amenities":                decodeJSONArray(am),
 		"max_guests":               optionalInt(maxGuests),
 		"price_per_night":          ppn,
+		"price_period":             pricePeriod,
 		"status":                   status,
 		"featured":                 featured,
 		"featured_until":           timePtrRFC3339(featUntil),
@@ -451,6 +453,7 @@ func (s *Server) propertyStore(c *gin.Context) {
 	bath := intPtrField(body, "bathrooms")
 	sizePtr := strFieldPtr(body, "size")
 	maxGuestsPtr := intPtrField(body, "max_guests")
+	pricePeriodPtr := strFieldPtr(body, "price_period")
 	landCID := strFieldPtr(body, "land_title_cloudinary_id")
 	landLat := floatPtrField(body, "land_title_lat")
 	landLng := floatPtrField(body, "land_title_lng")
@@ -465,7 +468,7 @@ func (s *Server) propertyStore(c *gin.Context) {
 	var pid uuid.UUID
 	err = s.Pool.QueryRow(c.Request.Context(), `
 		INSERT INTO properties (
-		  seller_id, title, description, price, location, district,
+		  seller_id, title, description, price, price_period, location, district,
 		  property_type, listing_type,
 		  bedrooms, bathrooms, size, photos, amenities,
 		  max_guests,
@@ -473,15 +476,15 @@ func (s *Server) propertyStore(c *gin.Context) {
 		  status,
 		  created_at, updated_at
 		) VALUES (
-		  $1,$2,$3,$4,$5,$6,
-		  $7, $8,
-		  $9,$10,$11,$12::jsonb,$13::jsonb,
-		  $14,
-		  $15,$16,$17,$18,
+		  $1,$2,$3,$4,$5,$6,$7,
+		  $8,$9,
+		  $10,$11,$12,$13::jsonb,$14::jsonb,
+		  $15,
+		  $16,$17,$18,$19,
 		  'active',
 		  NOW(), NOW()
 		) RETURNING id
-	`, me.ID, title, desc, price, location, districtNullable(district),
+	`, me.ID, title, desc, price, pricePeriodPtr, location, districtNullable(district),
 		ptype, listing,
 		bed, bath, sizePtr, photosJSON, []byte(amJSON),
 		maxGuestsPtr,
@@ -617,6 +620,13 @@ func (s *Server) propertyUpdate(c *gin.Context) {
 		var v *string
 		_ = json.Unmarshal(raw, &v)
 		fields = append(fields, `size = $`+strconv.Itoa(idx))
+		args = append(args, strPtrOrNil(v))
+		idx++
+	}
+	if raw, ok := body["price_period"]; ok {
+		var v *string
+		_ = json.Unmarshal(raw, &v)
+		fields = append(fields, `price_period = $`+strconv.Itoa(idx))
 		args = append(args, strPtrOrNil(v))
 		idx++
 	}
@@ -783,6 +793,7 @@ func scanPropertySellerCounts(rows pgx.Rows) (map[string]any, error) {
 		photos, am   []byte
 		maxGuests    *int32
 		ppn          *float64
+		pricePeriod  *string
 		status       string
 		featured     bool
 		featUntil    *time.Time
@@ -813,7 +824,7 @@ func scanPropertySellerCounts(rows pgx.Rows) (map[string]any, error) {
 		&title, &desc, &price, &location, &district,
 		&ptype, &ltype,
 		&bed, &bath, &size, &photos, &am,
-		&maxGuests, &ppn,
+		&maxGuests, &ppn, &pricePeriod,
 		&status, &featured, &featUntil,
 		&landURL, &landCID, &landLat, &landLng, &landVer,
 		&pCreated, &pUpdated,
@@ -853,6 +864,7 @@ func scanPropertySellerCounts(rows pgx.Rows) (map[string]any, error) {
 		"amenities":                decodeJSONArray(am),
 		"max_guests":               optionalInt(maxGuests),
 		"price_per_night":          ppn,
+		"price_period":             pricePeriod,
 		"status":                   status,
 		"featured":                 featured,
 		"featured_until":           timePtrRFC3339(featUntil),

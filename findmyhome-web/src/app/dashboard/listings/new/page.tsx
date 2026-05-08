@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
 import { propertiesApi } from '@/lib/api'
@@ -23,16 +23,18 @@ export default function NewListingPage() {
   const { user } = useAuthStore()
   const router   = useRouter()
 
-  const [type,        setType]        = useState('house')
-  const [photos,      setPhotos]      = useState<string[]>([])
-  const [titleFile,   setTitleFile]   = useState<string | null>(null)
-  const [titleId,     setTitleId]     = useState<string | null>(null)
-  const [titleLat,    setTitleLat]    = useState('')
-  const [titleLng,    setTitleLng]    = useState('')
-  const [amenities,   setAmenities]   = useState<string[]>([])
-  const [uploading,   setUploading]   = useState(false)
-  const [submitting,  setSubmitting]  = useState(false)
-  const [form,        setForm]        = useState<Record<string, any>>({})
+  const [type,          setType]          = useState('house')
+  const [photos,        setPhotos]        = useState<string[]>([])
+  const [titleFile,     setTitleFile]     = useState<string | null>(null)
+  const [titleId,       setTitleId]       = useState<string | null>(null)
+  const [titleLat,      setTitleLat]      = useState('')
+  const [titleLng,      setTitleLng]      = useState('')
+  const [amenities,     setAmenities]     = useState<string[]>([])
+  const [uploading,     setUploading]     = useState(false)
+  const [submitting,    setSubmitting]    = useState(false)
+  const [form,          setForm]          = useState<Record<string, any>>({})
+  const [pricePeriod,   setPricePeriod]   = useState('Per Month')
+  const [customPeriod,  setCustomPeriod]  = useState('')
 
   const photoRef = useRef<HTMLInputElement>(null)
   const titleRef = useRef<HTMLInputElement>(null)
@@ -40,6 +42,13 @@ export default function NewListingPage() {
   const PRESET   = process.env.NEXT_PUBLIC_CLOUDINARY_LISTINGS_PRESET || 'PHOTOS'
 
   const typeInfo = PROPERTY_TYPES[type]
+
+  useEffect(() => {
+    const def = typeInfo.isShortStay ? 'Per Night' : 'Per Month'
+    setPricePeriod(def)
+    setCustomPeriod('')
+    set('price_period', def)
+  }, [type])
 
   // Filter types by seller categories
   const allowedTypes = user?.seller_categories
@@ -159,15 +168,36 @@ export default function NewListingPage() {
               <label className="text-xs font-semibold uppercase tracking-wide text-dust block mb-1.5">Description *</label>
               <textarea required onChange={e => set('description', e.target.value)} rows={4} placeholder="Describe the property — features, condition, access road, nearby landmarks..." className="input resize-none" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wide text-dust block mb-1.5">
-                  Price (UGX) * {typeInfo.isShortStay && <span className="text-dust font-normal">(per night)</span>}
-                </label>
-                <input required type="number" min="1" onChange={e => set('price', parseInt(e.target.value))} placeholder="e.g. 180000000" className="input" />
+                <label className="text-xs font-semibold uppercase tracking-wide text-dust block mb-1.5">Price (UGX) *</label>
+                <input required type="number" min="1" onChange={e => set('price', parseInt(e.target.value))} placeholder="e.g. 500000" className="input" />
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {(typeInfo.isShortStay ? ['Per Night', 'Per Day', 'Custom'] : ['Per Month', 'Per Year', 'Custom']).map(opt => (
+                    <button type="button" key={opt}
+                      onClick={() => {
+                        setPricePeriod(opt)
+                        if (opt !== 'Custom') { setCustomPeriod(''); set('price_period', opt) }
+                      }}
+                      className={`px-3 py-1 rounded-full text-xs border transition-all ${pricePeriod === opt ? 'bg-ink text-white border-ink' : 'bg-white text-stone border-sand hover:border-stone'}`}>
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+                {pricePeriod === 'Custom' && (
+                  <input
+                    type="text"
+                    placeholder="e.g. Per Quarter, Per 6 Months…"
+                    value={customPeriod}
+                    onChange={e => { setCustomPeriod(e.target.value); set('price_period', e.target.value) }}
+                    className="input mt-2 text-sm"
+                  />
+                )}
               </div>
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wide text-dust block mb-1.5">Size</label>
+                <label className="text-xs font-semibold uppercase tracking-wide text-dust block mb-1.5">
+                  Size <span className="font-normal normal-case text-dust">(optional)</span>
+                </label>
                 <input onChange={e => set('size', e.target.value)} placeholder={typeInfo.isLand ? 'e.g. 50 decimals' : 'e.g. 180 sqm'} className="input" />
               </div>
             </div>
@@ -204,11 +234,16 @@ export default function NewListingPage() {
               </div>
             </div>
             <div>
-              <label className="text-xs font-semibold uppercase tracking-wide text-dust block mb-1.5">District</label>
-              <select onChange={e => set('district', e.target.value)} className="input">
-                <option value="">Select district</option>
-                {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <label className="text-xs font-semibold uppercase tracking-wide text-dust block mb-1.5">District <span className="text-dust font-normal normal-case">(optional)</span></label>
+              <input
+                list="district-list"
+                onChange={e => set('district', e.target.value)}
+                placeholder="Type or select district"
+                className="input"
+              />
+              <datalist id="district-list">
+                {DISTRICTS.map(d => <option key={d} value={d} />)}
+              </datalist>
             </div>
           </div>
         </div>

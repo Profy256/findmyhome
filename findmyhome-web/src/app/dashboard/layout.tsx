@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
+import { authApi } from '@/lib/api'
 import { useEffect, useState } from 'react'
 import { Home, List, FileCheck, BookOpen, DollarSign, Bell, Settings, LogOut, BarChart2, MessageSquare, Menu, X } from 'lucide-react'
 
@@ -18,14 +19,18 @@ const NAV = [
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated, clearAuth } = useAuthStore()
+  const { user, token, isAuthenticated, clearAuth, setAuth } = useAuthStore()
   const pathname = usePathname()
   const router   = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
-    if (!isAuthenticated()) router.replace('/auth/login')
-  }, [isAuthenticated])
+    if (!isAuthenticated()) { router.replace('/auth/login'); return }
+    // Refresh user data on every dashboard load so KYC status, role, etc. are never stale
+    authApi.me()
+      .then(res => { if (res.data && token) setAuth(res.data, token) })
+      .catch(() => {})
+  }, [])
 
   // Auto-close sidebar on navigation
   useEffect(() => { setSidebarOpen(false) }, [pathname])

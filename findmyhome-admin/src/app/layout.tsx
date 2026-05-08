@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Cormorant_Garamond, Jost } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
@@ -16,9 +16,22 @@ const jost = Jost({
   variable: '--font-jost',
 })
 
+export const viewport: Viewport = {
+  themeColor: '#1c1917',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+}
+
 export const metadata: Metadata = {
   title: 'Find My Home — Admin Panel',
   description: 'Internal administration dashboard for Find My Home Uganda platform.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'FMH Admin',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -64,6 +64,7 @@ func (s *Server) adminDashboard(c *gin.Context) {
 		"revenue":     map[string]int64{"commission_ugx": collected, "booking_fees_ugx": bookingFeesCollected},
 		"current_settings": map[string]any{
 			"commission_rate":            repo.SettingFloat(ctx, s.Pool, "commission_rate", 5),
+			"commission_rate_company":    repo.SettingFloat(ctx, s.Pool, "commission_rate_company", 3),
 			"commission_block_threshold": repo.SettingInt(ctx, s.Pool, "commission_block_threshold", 3),
 			"commission_due_days":        repo.SettingInt(ctx, s.Pool, "commission_due_days", 14),
 			"booking_fee_rate":           repo.SettingFloat(ctx, s.Pool, "booking_fee_rate", 7),
