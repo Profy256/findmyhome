@@ -2,31 +2,45 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store'
-import { leadsApi, propertiesApi, notificationsApi } from '@/lib/api'
-import { formatUGX, timeAgo } from '@/lib/utils'
+import { leadsApi, propertiesApi, notificationsApi, kycApi } from '@/lib/api'
+import { timeAgo } from '@/lib/utils'
 import { TrendingUp, Eye, MessageSquare, DollarSign, Plus, AlertTriangle, CheckCircle2, Clock } from 'lucide-react'
 
 export default function DashboardPage() {
-  const { user } = useAuthStore()
+  const { user, token, setAuth } = useAuthStore()
   const [leads,     setLeads]     = useState<any>(null)
   const [listings,  setListings]  = useState<any>(null)
   const [notifs,    setNotifs]    = useState<any>(null)
-  const [loading,   setLoading]   = useState(true)
+  const [kycData,   setKycData]   = useState<any>(null)
 
   const isSeller = user?.role === 'seller' || user?.role === 'company'
 
   useEffect(() => {
     const calls: Promise<any>[] = [notificationsApi.unread()]
     if (isSeller) {
+      calls.push(kycApi.status())
       calls.push(leadsApi.mine())
       calls.push(propertiesApi.mine())
     }
-    Promise.all(calls).then(([n, l, p]) => {
-      setNotifs(n.data); setLeads(l?.data); setListings(p?.data)
-    }).finally(() => setLoading(false))
+    Promise.all(calls).then(([n, k, l, p]) => {
+      setNotifs(n.data)
+      if (isSeller) {
+        const kyc = k?.data
+        setKycData(kyc)
+        setLeads(l?.data)
+        setListings(p?.data)
+        // Sync fresh kyc_status into the store so the sidebar badge updates too
+        if (kyc?.kyc_status && user && token) {
+          setAuth({ ...user, kyc_status: kyc.kyc_status }, token)
+        }
+      }
+    }).catch(() => {})
   }, [user?.role])
 
-  const kycStatus = user?.kyc_status
+  // Use live data from the API; fall back to cached store value while loading
+  const kycStatus = kycData?.kyc_status ?? user?.kyc_status
+  // "Document under review" only when the API confirms a pending document exists
+  const hasPendingDoc = kycData?.documents?.some((d: any) => d.status === 'pending')
 
   return (
     <div>
@@ -37,22 +51,22 @@ export default function DashboardPage() {
         <p className="text-sm text-stone">Here's what's happening with your account.</p>
       </div>
 
-      {/* KYC alert */}
-      {isSeller && kycStatus !== 'verified' && (
+      {/* KYC alert — only show when API has confirmed the actual status */}
+      {isSeller && kycStatus !== 'verified' && kycData !== null && (
         <div className={`flex items-start gap-3 p-4 rounded-xl mb-6 border
-          ${kycStatus === 'pending' ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'}`}>
-          {kycStatus === 'pending'
+          ${hasPendingDoc ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'}`}>
+          {hasPendingDoc
             ? <Clock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
             : <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
           }
           <div>
             <p className="text-sm font-semibold text-ink mb-0.5">
-              {kycStatus === 'pending' ? 'Verification in progress' : kycStatus === 'none' ? 'Verify your identity to start listing' : 'Verification failed — please resubmit'}
+              {hasPendingDoc ? 'Verification in progress' : kycStatus === 'none' ? 'Verify your identity to start listing' : 'Verification failed — please resubmit'}
             </p>
             <p className="text-xs text-stone">
-              {kycStatus === 'pending' ? 'Your document is being reviewed. Most verifications complete within minutes, but some may take up to 24 hours.' : 'Upload your National ID or Passport to get verified and list properties.'}
+              {hasPendingDoc ? 'Your document is being reviewed. Most verifications complete within minutes, but some may take up to 24 hours.' : 'Upload your National ID or Passport to get verified and list properties.'}
             </p>
-            {kycStatus !== 'pending' && (
+            {!hasPendingDoc && (
               <Link href="/dashboard/kyc" className="text-xs font-semibold text-ink underline mt-1.5 inline-block">
                 Go to Verification →
               </Link>
@@ -118,7 +132,7 @@ export default function DashboardPage() {
               </Link>
             )}
             {isSeller && kycStatus !== 'verified' && (
-              kycStatus === 'pending' ? (
+              hasPendingDoc ? (
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50/50 border border-amber-200/50 opacity-70">
                   <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
                   <span className="text-sm text-amber-700 font-medium">Document under review</span>
