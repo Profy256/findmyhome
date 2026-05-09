@@ -235,7 +235,7 @@ export default async function HomePage() {
               {[
                 { title:'Properties', links:[['Houses for Sale','/search?type=house&listing=sale'],['Apartments for Rent','/search?type=apartment&listing=rent'],['Land Listings','/search?type=land'],['Commercial','/search?type=commercial']] },
                 { title:'For Sellers', links:[['List a Property','/auth/register?role=seller'],['Verify Your Account','/dashboard/kyc'],['Blue Badge','/dashboard/kyc'],['Seller Dashboard','/dashboard']] },
-                { title:'Company',   links:[['About Us','#'],['How It Works','#'],['Contact Us','#'],['Privacy Policy','#']] },
+                { title:'Company',   links:[['About Us','#'],['How It Works','#'],['Privacy Policy','#']] },
               ].map(col => (
                 <div key={col.title}>
                   <h4 className="text-[10px] font-bold uppercase tracking-[2px] text-white/60 mb-4">{col.title}</h4>
@@ -244,9 +244,14 @@ export default async function HomePage() {
                   ))}
                 </div>
               ))}
+              <div>
+                <h4 className="text-[10px] font-bold uppercase tracking-[2px] text-white/60 mb-4">Contact Us</h4>
+                <a href="mailto:findmyhomeuganda@gmail.com" className="block text-sm font-light mb-2.5 hover:text-white transition-colors">findmyhomeuganda@gmail.com</a>
+                <a href="tel:+256740686937" className="block text-sm font-light mb-2.5 hover:text-white transition-colors">+256 740 686 937</a>
+              </div>
             </div>
             <div className="pt-6 border-t border-white/8 flex flex-col md:flex-row justify-between items-center gap-2 text-xs font-light">
-              <span>© 2025 Find My Home. All rights reserved.</span>
+              <span>© 2026 Find My Home UG. All rights reserved.</span>
               <span>Made for Uganda 🇺🇬</span>
             </div>
           </div>
