@@ -39,7 +39,8 @@ graph TD;
 | **Buyer** | Browse listings, send enquiries, WhatsApp contact, book short stays |
 | **Individual Seller** | List properties after KYC. Land listings require a title document |
 | **Company** | Registered agencies. Get a verified Blue Badge on KYC approval |
-| **Admin** | Full platform control — KYC approvals, user management, commissions |
+| **Admin** | Full platform control — KYC approvals, user management, commissions, settings |
+| **Sub-Admin** | Read-only platform view + approve pending KYC + grant Blue Badge. Cannot delete, block, reject, or change settings |
 
 ### Core Workflows
 
@@ -99,7 +100,13 @@ The Go API reads `FRONTEND_URL` at startup. All `https://` origins are allowed s
 | `bearerAuth()` | All `/api/v1` authed routes |
 | `verifiedSeller()` | Property write routes — requires `kyc_status = verified` |
 | `sellerActive()` | Blocks sellers with overdue commissions |
-| `adminOnly()` | All `/api/v1/admin/*` routes |
+| `adminOnly()` | All `/api/v1/admin/*` routes — requires `role = admin` |
+| `subAdminOnly()` | All `/api/v1/sub-admin/*` routes — requires `role = sub_admin` |
+
+**Sub-Admin permitted endpoints:**
+- `GET` on all data endpoints (dashboard, users, KYC, properties, commissions, bookings, ratings, leads)
+- `POST /sub-admin/kyc/:id/approve` — approve pending KYC only (no reject)
+- `POST /sub-admin/users/:id/grant-badge` — grant Blue Badge only
 
 ---
 
@@ -170,7 +177,7 @@ go build -o findmyhome-api ./cmd/server
 
 | Table | Purpose |
 |---|---|
-| `users` | All roles: buyer, seller, company, admin |
+| `users` | All roles: buyer, seller, company, admin, sub_admin |
 | `personal_access_tokens` | Bearer auth tokens (Sanctum-compatible) |
 | `properties` | Listings with type, price, photos, coords |
 | `leads` | Enquiry & WhatsApp lead tracking |

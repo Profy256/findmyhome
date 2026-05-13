@@ -61,7 +61,12 @@ export default function PropertyDetailScreen() {
   }
 
   const handleShare = async () => {
-    await Share.share({ message: `Check out this property on Find My Home:\n${property.title}\n${property.location}\n${formatUGX(property.price)}` })
+    const origin = (process.env.EXPO_PUBLIC_WEB_URL ?? 'https://findmyhomeuganda.com').replace(/\/$/, '')
+    const webUrl = `${origin}/properties/${id}`
+    await Share.share({
+      message: `Check out this property on FindMyHome:\n${property.title}\n${property.location}\n${formatUGX(property.price)}\n\n${webUrl}`,
+      url: webUrl,
+    })
   }
 
   if (loading) return <Loading full />

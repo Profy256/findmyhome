@@ -87,8 +87,18 @@ func KycMessage(strictest string) string {
 	}
 }
 
+// strictTypes lists the only property types that require a matching registered category.
+// All other types (lodge, rental, apartment, airbnb) are open to any verified seller.
+var strictTypes = map[string]bool{
+	"land":  true,
+	"house": true,
+}
+
 func CanListType(sellerCategories []string, propertyType string, role string) bool {
 	if role == "admin" || role == "company" {
+		return true
+	}
+	if !strictTypes[propertyType] {
 		return true
 	}
 	required := PropertyTypeToCategory[propertyType]

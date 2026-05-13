@@ -84,6 +84,18 @@ func (s *Server) adminOnly() gin.HandlerFunc {
 	}
 }
 
+func (s *Server) subAdminOnly() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		u, ok := UserFromContext(c.Request.Context())
+		if !ok || u == nil || u.Role != "sub_admin" {
+			c.JSON(http.StatusForbidden, gin.H{"message": "Sub-admin access required."})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
 func (s *Server) bearerAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		hdr := c.GetHeader("Authorization")

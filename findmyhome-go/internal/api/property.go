@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"findmyhome/backend/internal/model"
+	"log/slog"
+
 	"findmyhome/backend/internal/response"
 	"findmyhome/backend/internal/seller"
 )
@@ -492,6 +494,11 @@ func (s *Server) propertyStore(c *gin.Context) {
 	).Scan(&pid)
 
 	if err != nil {
+		slog.Error("propertyStore: INSERT failed",
+			slog.String("seller_id", me.ID.String()),
+			slog.String("property_type", ptype),
+			slog.Any("err", err),
+		)
 		jsonErr(c, http.StatusInternalServerError, "Could not create listing.")
 		return
 	}

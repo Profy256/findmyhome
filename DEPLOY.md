@@ -258,7 +258,39 @@ pg_dump "postgres://..." --no-acl --no-owner -F c -f backup-$(date +%Y%m%d).dump
 | Role | Email | Password |
 |---|---|---|
 | Admin | admin@findmyhomeuganda.com | Admin@2024! |
+| Sub-Admin | subadmin@findmyhomeuganda.com | SubAdmin@2024! |
 | Company | info@primeestates.ug | Seller@2024! |
 | Land Seller | grace.namukasa@gmail.com | Seller@2024! |
 | Short Stay Host | kevin.ochieng@gmail.com | Seller@2024! |
 | Buyer | peter.ochieng@gmail.com | Buyer@2024! |
+
+---
+
+## Sub-Admin Setup
+
+Sub-admins are created by promoting an existing user to the `sub_admin` role. There is no self-registration for this role.
+
+### Via the Admin Panel (UI)
+1. Log in to the Admin Panel as an `admin`
+2. Go to **Users** → find the user to promote
+3. Use **Change Role** → select `sub_admin` → save
+
+### Via Direct DB (for seeding)
+```sql
+INSERT INTO users (name, email, phone, password, role)
+VALUES (
+  'Sub Admin',
+  'subadmin@findmyhomeuganda.com',
+  '+256700000002',
+  -- bcrypt hash of 'SubAdmin@2024!'
+  '$2a$10$...',
+  'sub_admin'
+);
+```
+
+### Sub-Admin Access
+Once the role is set, the user logs in at the **Admin Panel** URL (`/auth/login`). After login they are redirected to `/sub-admin` — a separate dashboard with read-only access plus:
+- Approve pending KYC submissions
+- Grant Blue Badge to sellers
+
+Sub-admins **cannot**: delete users/listings, block users, reject KYC, change commissions, or edit platform settings. All destructive actions are admin-only.

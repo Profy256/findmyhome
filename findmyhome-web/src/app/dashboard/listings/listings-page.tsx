@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { propertiesApi } from '@/lib/api'
 import { formatUGX, timeAgo } from '@/lib/utils'
-import { Plus, Eye, MessageSquare, Pencil, Trash2, MapPin, AlertCircle } from 'lucide-react'
+import { Plus, Eye, MessageSquare, Pencil, Trash2, MapPin, AlertCircle, Share2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { ShareModal } from '@/components/ShareModal'
 
 const STATUS_COLORS: Record<string, string> = {
   active:  'bg-green-100 text-green-700',
@@ -18,6 +19,7 @@ export default function ListingsPage() {
   const [listings, setListings] = useState<any[]>([])
   const [loading,  setLoading]  = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [sharing,  setSharing]  = useState<{ id: string; title: string } | null>(null)
 
   useEffect(() => {
     propertiesApi.mine().then(r => setListings(r.data.data ?? [])).finally(() => setLoading(false))
@@ -91,6 +93,11 @@ export default function ListingsPage() {
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
+                <button onClick={() => setSharing({ id: p.id, title: p.title })}
+                  className="w-8 h-8 rounded-lg border border-sand flex items-center justify-center hover:bg-cream transition-colors"
+                  title="Share listing">
+                  <Share2 className="w-4 h-4 text-stone" />
+                </button>
                 <Link href={`/properties/${p.id}`} className="w-8 h-8 rounded-lg border border-sand flex items-center justify-center hover:bg-cream transition-colors">
                   <Eye className="w-4 h-4 text-stone" />
                 </Link>
@@ -105,6 +112,15 @@ export default function ListingsPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {sharing && (
+        <ShareModal
+          propertyId={sharing.id}
+          title={sharing.title}
+          open={!!sharing}
+          onClose={() => setSharing(null)}
+        />
       )}
     </div>
   )

@@ -16,23 +16,29 @@ export default function DashboardPage() {
   const isSeller = user?.role === 'seller' || user?.role === 'company'
 
   useEffect(() => {
+    // KYC is fetched independently so its failure never blocks leads/listings
+    if (isSeller) {
+      kycApi.status()
+        .then(r => {
+          const kyc = r.data
+          setKycData(kyc)
+          if (kyc?.kyc_status && user && token) {
+            setAuth({ ...user, kyc_status: kyc.kyc_status }, token)
+          }
+        })
+        .catch(() => {})
+    }
+
     const calls: Promise<any>[] = [notificationsApi.unread()]
     if (isSeller) {
-      calls.push(kycApi.status())
       calls.push(leadsApi.mine())
       calls.push(propertiesApi.mine())
     }
-    Promise.all(calls).then(([n, k, l, p]) => {
+    Promise.all(calls).then(([n, l, p]) => {
       setNotifs(n.data)
       if (isSeller) {
-        const kyc = k?.data
-        setKycData(kyc)
         setLeads(l?.data)
         setListings(p?.data)
-        // Sync fresh kyc_status into the store so the sidebar badge updates too
-        if (kyc?.kyc_status && user && token) {
-          setAuth({ ...user, kyc_status: kyc.kyc_status }, token)
-        }
       }
     }).catch(() => {})
   }, [user?.role])

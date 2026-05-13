@@ -19,6 +19,11 @@ export default function NewListingScreen() {
   const [location,    setLocation]    = useState('')
   const [district,    setDistrict]    = useState('')
   const [propType,    setPropType]    = useState('house')
+
+  // Filter types to only what the seller is registered for
+  const allowedTypes = user?.role === 'company'
+    ? PROPERTY_TYPES
+    : PROPERTY_TYPES.filter(t => (user?.seller_categories ?? []).includes(t.key))
   const [bedrooms,    setBedrooms]    = useState('')
   const [bathrooms,   setBathrooms]   = useState('')
   const [size,        setSize]        = useState('')
@@ -33,11 +38,6 @@ export default function NewListingScreen() {
   const isLand      = propType === 'land'
   const isShortStay = propType === 'airbnb' || propType === 'lodge'
   const needsTitle  = isLand && user?.role === 'seller'
-
-  // Filter types to only what the seller is registered for
-  const allowedTypes = user?.role === 'company'
-    ? PROPERTY_TYPES
-    : PROPERTY_TYPES.filter(t => (user?.seller_categories ?? []).includes(t.key))
 
   const pickPhoto = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({ allowsMultipleSelection: true, quality: 0.8 })

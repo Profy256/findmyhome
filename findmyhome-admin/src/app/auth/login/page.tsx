@@ -23,7 +23,7 @@ export default function LoginPage() {
       setAuth(res.data.user, res.data.token)
       toast.success(`Welcome back, ${res.data.user.name.split(' ')[0]}!`)
       const role = res.data.user.role
-      router.push(role === 'admin' ? '/admin' : role === 'buyer' ? '/search' : '/dashboard')
+      router.push(role === 'admin' ? '/admin' : role === 'sub_admin' ? '/sub-admin' : role === 'buyer' ? '/search' : '/dashboard')
     } catch (err: any) {
       if (isNetworkError(err)) {
         toast.error(`Cannot reach API (${API_URL}). Make sure the backend is running and CORS allows this origin.`)

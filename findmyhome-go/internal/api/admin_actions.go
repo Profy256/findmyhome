@@ -91,7 +91,7 @@ func (s *Server) adminRole(c *gin.Context) {
 		jsonErr(c, http.StatusBadRequest, "Invalid JSON.")
 		return
 	}
-	valid := map[string]bool{"buyer": true, "seller": true, "company": true, "admin": true}
+	valid := map[string]bool{"buyer": true, "seller": true, "company": true, "admin": true, "sub_admin": true}
 	if !valid[body.Role] {
 		writeValidation(c, "Validation failed.", map[string][]string{"role": {"invalid"}})
 		return

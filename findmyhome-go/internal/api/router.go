@@ -175,6 +175,22 @@ func (s *Server) Engine() *gin.Engine {
 		admin.PATCH("/settings/:key", s.adminSettingsPatch)
 	}
 
+	subAdmin := authed.Group("/sub-admin")
+	subAdmin.Use(s.subAdminOnly())
+	{
+		subAdmin.GET("/dashboard", s.adminDashboard)
+		subAdmin.GET("/users", s.adminUsers)
+		subAdmin.GET("/users/:user", s.adminUser)
+		subAdmin.GET("/kyc", s.adminListKYC)
+		subAdmin.POST("/kyc/:document/approve", s.adminApproveKYC)
+		subAdmin.GET("/properties", s.adminListProperties)
+		subAdmin.GET("/commissions", s.adminListCommissions)
+		subAdmin.GET("/bookings", s.adminBookings)
+		subAdmin.GET("/ratings", s.adminRatings)
+		subAdmin.GET("/leads", s.adminLeads)
+		subAdmin.POST("/users/:user/grant-badge", s.adminGrantBadge)
+	}
+
 	r.POST("/api/payments/ipn", s.pesapalIPN)
 	r.POST("/api/v1/payments/ipn", s.pesapalIPN)
 

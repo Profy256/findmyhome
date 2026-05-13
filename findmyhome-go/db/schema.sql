@@ -94,6 +94,9 @@ CREATE TABLE IF NOT EXISTS properties (
     updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Idempotent column additions for existing databases
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS price_period TEXT;
+
 CREATE INDEX IF NOT EXISTS properties_seller_id_idx  ON properties (seller_id);
 CREATE INDEX IF NOT EXISTS properties_status_idx     ON properties (status);
 CREATE INDEX IF NOT EXISTS properties_deleted_at_idx ON properties (deleted_at);
