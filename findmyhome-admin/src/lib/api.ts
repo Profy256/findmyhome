@@ -130,20 +130,6 @@ export const adminApi = {
   updateSetting:    (key: string, value: any)       => api.patch(`/admin/settings/${key}`, { value }),
 }
 
-export const subAdminApi = {
-  dashboard:      ()                              => api.get('/sub-admin/dashboard'),
-  users:          (params?: any)                  => api.get('/sub-admin/users', { params }),
-  viewUser:       (id: string)                    => api.get(`/sub-admin/users/${id}`),
-  listKyc:        (params?: any)                  => api.get('/sub-admin/kyc', { params }),
-  approveKyc:     (docId: string)                 => api.post(`/sub-admin/kyc/${docId}/approve`),
-  listProperties: (params?: any)                  => api.get('/sub-admin/properties', { params }),
-  listCommissions:(params?: any)                  => api.get('/sub-admin/commissions', { params }),
-  grantBadge:     (id: string, days?: number)     => api.post(`/sub-admin/users/${id}/grant-badge`, { days }),
-  listBookings:   (params?: any)                  => api.get('/sub-admin/bookings', { params }),
-  listRatings:    (params?: any)                  => api.get('/sub-admin/ratings', { params }),
-  listLeads:      (params?: any)                  => api.get('/sub-admin/leads', { params }),
-}
-
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface RegisterData {

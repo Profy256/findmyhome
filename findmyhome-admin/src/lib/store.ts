@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 
 interface User {
   id: string; name: string; email: string; phone: string;
-  role: 'buyer' | 'seller' | 'company' | 'admin' | 'sub_admin';
+  role: 'buyer' | 'seller' | 'company' | 'admin';
   kyc_status: string; blue_badge: boolean; average_rating: number;
   total_reviews: number; company_name?: string; booking_enabled?: boolean;
   free_featured_slots?: number;
@@ -16,7 +16,6 @@ interface AuthState {
   clearAuth: () => void
   isAuthenticated: () => boolean
   isAdmin: () => boolean
-  isSubAdmin: () => boolean
   isSeller: () => boolean
   isVerified: () => boolean
 }
@@ -45,7 +44,6 @@ export const useAuthStore = create<AuthState>()(
 
       isAuthenticated: () => !!get().token && !!get().user,
       isAdmin:         () => get().user?.role === 'admin',
-      isSubAdmin:      () => get().user?.role === 'sub_admin',
       isSeller:        () => ['seller', 'company'].includes(get().user?.role ?? ''),
       isVerified:      () => get().user?.kyc_status === 'verified',
     }),
